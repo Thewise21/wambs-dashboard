@@ -1,0 +1,16 @@
+{
+  "name": "wambs-dashboard-api",
+  "version": "1.0.0",
+  "description": "Backend API for WAMBS Dashboard - BigQuery connector",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@google-cloud/bigquery": "^7.9.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "dotenv": "^16.4.5"
+  }
+}

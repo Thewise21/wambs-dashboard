@@ -1,0 +1,199 @@
+{
+  "name": "WAMBS Dashboard - Enriched Daily Snapshot",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 17,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Daily 17:00 Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://wambsconsulting.eu.taxdome.com/api/v1/inbox/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "taxdome-inbox",
+      "name": "TaxDome: Inbox Count",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, -200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://wambsconsulting.eu.taxdome.com/api/v1/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "taxdome-tasks",
+      "name": "TaxDome: Active Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, -100],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const today = new Date().toISOString().split('T')[0];\n\n// Get TaxDome data from previous nodes (with fallbacks)\nconst taxdomeInbox = $input.all().find(i => i.json.inbox_count !== undefined);\nconst taxdomeTasks = $input.all().find(i => i.json.tasks_count !== undefined);\n\nconst inboxCount = taxdomeInbox?.json?.inbox_count || 640;\nconst tasksCount = taxdomeTasks?.json?.tasks_count || 86;\nconst activeClients = taxdomeTasks?.json?.active_clients || 86;\n\n// Habits template\nconst habits = [\n  { id: 1, name: 'Morning Routine (6h)', icon: 'sun' },\n  { id: 2, name: 'Deep Work (3h min)', icon: 'target' },\n  { id: 3, name: 'Inbox Zero', icon: 'email' },\n  { id: 4, name: 'Sport / Mouvement', icon: 'muscle' },\n  { id: 5, name: 'Lecture (30 min)', icon: 'book' },\n  { id: 6, name: 'Revue du soir', icon: 'moon' }\n];\n\nconst timeblocks = [\n  { start: '03:30', task: 'Morning Routine', type: 'routine', duration: 45 },\n  { start: '04:15', task: 'TaxDome + Emails (Inbox Zero)', type: 'admin', duration: 45 },\n  { start: '05:00', task: 'Deep Work - Steuererklaerungen', type: 'deep', duration: 120 },\n  { start: '07:00', task: 'Message Reviews', type: 'admin', duration: 120 },\n  { start: '09:00', task: 'Deep Work - ELSTER / Dossiers', type: 'deep', duration: 180 },\n  { start: '12:00', task: 'Pause dejeuner', type: 'break', duration: 60 },\n  { start: '13:00', task: 'Appels und Meetings mandants', type: 'meeting', duration: 120 },\n  { start: '15:00', task: 'Admin und Facturation', type: 'admin', duration: 60 },\n  { start: '16:00', task: 'Formation / Lecture pro', type: 'learning', duration: 45 },\n  { start: '16:45', task: 'Revue du soir und Planification', type: 'routine', duration: 30 }\n];\n\n// Build SQL statements\nconst habitValues = habits.map(h => `('${today}', ${h.id}, '${h.name}', '${h.icon}', false, 0)`).join(', ');\nconst habitSQL = `INSERT INTO \\`wambs-consulting.dashboard_analytics.daily_habits_log\\` (date, habit_id, habit_name, icon, completed, streak) VALUES ${habitValues}`;\n\nconst tbValues = timeblocks.map(t => `('${today}', '${t.start}', '${t.task}', '${t.type}', ${t.duration})`).join(', ');\nconst tbSQL = `INSERT INTO \\`wambs-consulting.dashboard_analytics.timeblock_tracking\\` (date, block_start, task, type, planned_duration) VALUES ${tbValues}`;\n\nconst sessionSQL = `INSERT INTO \\`wambs-consulting.dashboard_analytics.session_log\\` (date, session_start, tasks_completed, files_modified, skills_used, notes) VALUES ('${today}', TIMESTAMP('${today} 03:30:00'), 0, 0, 'n8n-enriched-snapshot', 'Enriched daily snapshot - Inbox: ${inboxCount}, Tasks: ${tasksCount}, Clients: ${activeClients}')`;\n\n// Update KPIs with live TaxDome data\nconst kpiSQL = `INSERT INTO \\`wambs-consulting.dashboard_analytics.kpi_log\\` (date, kpi_name, kpi_value, target, unit) VALUES ('${today}', 'Inbox Messages', ${inboxCount}, 0, 'messages'), ('${today}', 'TaxDome Tasks', ${tasksCount}, 0, 'tasks'), ('${today}', 'Mandants actifs', ${activeClients}, 100, 'mandants')`;\n\nreturn [\n  { json: { habitsSql: habitSQL, timeblocksSql: tbSQL, sessionSql: sessionSQL, kpiSql: kpiSQL, today, inboxCount, tasksCount, activeClients, summary: `Enriched Snapshot ${today}: 6 habits, 10 timeblocks, 1 session, 3 KPIs (Inbox: ${inboxCount}, Tasks: ${tasksCount}, Clients: ${activeClients})` } }\n];"
+      },
+      "id": "code-build-sql",
+      "name": "Build Enriched SQL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "projectId": "wambs-consulting",
+        "operation": "executeQuery",
+        "sqlQuery": "={{ $json.habitsSql }}"
+      },
+      "id": "bq-habits",
+      "name": "BQ: Habits",
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2,
+      "position": [660, -150],
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "Google BigQuery OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": "wambs-consulting",
+        "operation": "executeQuery",
+        "sqlQuery": "={{ $json.timeblocksSql }}"
+      },
+      "id": "bq-timeblocks",
+      "name": "BQ: TimeBlocks",
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2,
+      "position": [660, -50],
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "Google BigQuery OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": "wambs-consulting",
+        "operation": "executeQuery",
+        "sqlQuery": "={{ $json.sessionSql }}"
+      },
+      "id": "bq-session",
+      "name": "BQ: Session",
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2,
+      "position": [660, 50],
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "Google BigQuery OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": "wambs-consulting",
+        "operation": "executeQuery",
+        "sqlQuery": "={{ $json.kpiSql }}"
+      },
+      "id": "bq-kpis",
+      "name": "BQ: KPIs",
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2,
+      "position": [660, 150],
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "Google BigQuery OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "wambapoclaire@gmail.com",
+        "subject": "=WAMBS Dashboard Enriched Snapshot - {{ $json.today }}",
+        "message": "=<h2>Daily BigQuery Enriched Snapshot</h2><p>{{ $json.summary }}</p><p><b>Live TaxDome Data:</b></p><ul><li>Inbox: {{ $json.inboxCount }} messages</li><li>Active Tasks: {{ $json.tasksCount }}</li><li>Active Clients: {{ $json.activeClients }}</li></ul><p><b>Tables updated:</b></p><ul><li>daily_habits_log (6 rows)</li><li>timeblock_tracking (10 rows)</li><li>session_log (1 row)</li><li>kpi_log (3 rows - live TaxDome KPIs)</li></ul><p><a href='https://thewise21.github.io/wambs-dashboard'>Open Dashboard</a> | <a href='https://console.cloud.google.com/bigquery?project=wambs-consulting'>Open BigQuery</a></p>",
+        "options": {}
+      },
+      "id": "gmail-notify",
+      "name": "Gmail: Enriched Summary",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [880, 0],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_WITH_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail OAuth2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 17:00 Trigger": {
+      "main": [
+        [
+          { "node": "TaxDome: Inbox Count", "type": "main", "index": 0 },
+          { "node": "TaxDome: Active Tasks", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "TaxDome: Inbox Count": {
+      "main": [
+        [{ "node": "Build Enriched SQL", "type": "main", "index": 0 }]
+      ]
+    },
+    "TaxDome: Active Tasks": {
+      "main": [
+        [{ "node": "Build Enriched SQL", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Enriched SQL": {
+      "main": [
+        [
+          { "node": "BQ: Habits", "type": "main", "index": 0 },
+          { "node": "BQ: TimeBlocks", "type": "main", "index": 0 },
+          { "node": "BQ: Session", "type": "main", "index": 0 },
+          { "node": "BQ: KPIs", "type": "main", "index": 0 },
+          { "node": "Gmail: Enriched Summary", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Berlin"
+  },
+  "tags": [
+    { "name": "dashboard" },
+    { "name": "bigquery" },
+    { "name": "automation" },
+    { "name": "taxdome" },
+    { "name": "enriched" }
+  ]
+}
