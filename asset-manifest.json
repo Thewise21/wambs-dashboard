@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/wambs-dashboard/static/css/main.86f5886f.css",
-    "main.js": "/wambs-dashboard/static/js/main.bf850ff6.js",
+    "main.js": "/wambs-dashboard/static/js/main.f505cdf4.js",
     "static/js/453.7c82cb7a.chunk.js": "/wambs-dashboard/static/js/453.7c82cb7a.chunk.js",
     "index.html": "/wambs-dashboard/index.html",
     "main.86f5886f.css.map": "/wambs-dashboard/static/css/main.86f5886f.css.map",
-    "main.bf850ff6.js.map": "/wambs-dashboard/static/js/main.bf850ff6.js.map",
+    "main.f505cdf4.js.map": "/wambs-dashboard/static/js/main.f505cdf4.js.map",
     "453.7c82cb7a.chunk.js.map": "/wambs-dashboard/static/js/453.7c82cb7a.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.86f5886f.css",
-    "static/js/main.bf850ff6.js"
+    "static/js/main.f505cdf4.js"
   ]
 }
