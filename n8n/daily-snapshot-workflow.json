@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const today = new Date().toISOString().split('T')[0];\n\nconst habits = [\n  { id: 1, name: 'Morning Routine (6h)', icon: 'sun' },\n  { id: 2, name: 'Deep Work (3h min)', icon: 'target' },\n  { id: 3, name: 'Inbox Zero', icon: 'email' },\n  { id: 4, name: 'Sport / Mouvement', icon: 'muscle' },\n  { id: 5, name: 'Lecture (30 min)', icon: 'book' },\n  { id: 6, name: 'Revue du soir', icon: 'moon' }\n];\n\nconst timeblocks = [\n  { start: '03:30', task: 'Morning Routine', type: 'routine', duration: 45 },\n  { start: '04:15', task: 'TaxDome + Emails (Inbox Zero)', type: 'admin', duration: 45 },\n  { start: '05:00', task: 'Deep Work - Steuererklaerungen', type: 'deep', duration: 120 },\n  { start: '07:00', task: 'Message Reviews', type: 'admin', duration: 120 },\n  { start: '09:00', task: 'Deep Work - ELSTER / Dossiers', type: 'deep', duration: 180 },\n  { start: '12:00', task: 'Pause dejeuner', type: 'break', duration: 60 },\n  { start: '13:00', task: 'Appels und Meetings mandants', type: 'meeting', duration: 120 },\n  { start: '15:00', task: 'Admin und Facturation', type: 'admin', duration: 60 },\n  { start: '16:00', task: 'Formation / Lecture pro', type: 'learning', duration: 45 },\n  { start: '16:45', task: 'Revue du soir und Planification', type: 'routine', duration: 30 }\n];\n\nconst habitValues = habits.map(h => `('${today}', ${h.id}, '${h.name}', '${h.icon}', false, 0)`).join(', ');\nconst habitSQL = `INSERT INTO \\`wambs-consulting.dashboard_analytics.daily_habits_log\\` (date, habit_id, habit_name, icon, completed, streak) VALUES ${habitValues}`;\n\nconst tbValues = timeblocks.map(t => `('${today}', '${t.start}', '${t.task}', '${t.type}', ${t.duration})`).join(', ');\nconst tbSQL = `INSERT INTO \\`wambs-consulting.dashboard_analytics.timeblock_tracking\\` (date, block_start, task, type, planned_duration) VALUES ${tbValues}`;\n\nconst sessionSQL = `INSERT INTO \\`wambs-consulting.dashboard_analytics.session_log\\` (date, session_start, tasks_completed, files_modified, skills_used, notes) VALUES ('${today}', TIMESTAMP('${today} 03:30:00'), 0, 0, 'n8n-auto-snapshot', 'Automated daily snapshot via n8n')`;\n\nreturn [\n  { json: { sql: habitSQL, table: 'daily_habits_log' } },\n  { json: { sql: tbSQL, table: 'timeblock_tracking' } },\n  { json: { sql: sessionSQL, table: 'session_log' } },\n  { json: { today, summary: `Snapshot ${today}: 6 habits, 10 timeblocks, 1 session logged` } }\n];"
+        "jsCode": "const today = new Date().toISOString().split('T')[0];\n\nconst habits = [\n  { id: 1, name: 'Morning Routine (6h)', icon: 'sun' },\n  { id: 2, name: 'Deep Work (3h min)', icon: 'target' },\n  { id: 3, name: 'Inbox Zero', icon: 'email' },\n  { id: 4, name: 'Sport / Mouvement', icon: 'muscle' },\n  { id: 5, name: 'Lecture (30 min)', icon: 'book' },\n  { id: 6, name: 'Revue du soir', icon: 'moon' }\n];\n\nconst timeblocks = [\n  { start: '03:30', task: 'Morning Routine', type: 'routine', duration: 45 },\n  { start: '04:15', task: 'TaxDome + Emails (Inbox Zero)', type: 'admin', duration: 45 },\n  { start: '05:00', task: 'Deep Work - Steuererklaerungen', type: 'deep', duration: 120 },\n  { start: '07:00', task: 'Message Reviews', type: 'admin', duration: 120 },\n  { start: '09:00', task: 'Deep Work - ELSTER / Dossiers', type: 'deep', duration: 180 },\n  { start: '12:00', task: 'Pause dejeuner', type: 'break', duration: 60 },\n  { start: '13:00', task: 'Appels und Meetings mandants', type: 'meeting', duration: 120 },\n  { start: '15:00', task: 'Admin und Facturation', type: 'admin', duration: 60 },\n  { start: '16:00', task: 'Formation / Lecture pro', type: 'learning', duration: 45 },\n  { start: '16:45', task: 'Revue du soir und Planification', type: 'routine', duration: 30 }\n];\n\nconst habitValues = habits.map(h => `('${today}', ${h.id}, '${h.name}', '${h.icon}', false, 0)`).join(', ');\nconst habitSQL = `INSERT INTO \\`wambs-consulting.dashboard_analytics.daily_habits_log\\` (date, habit_id, habit_name, icon, completed, streak) VALUES ${habitValues}`;\n\nconst tbValues = timeblocks.map(t => `('${today}', '${t.start}', '${t.task}', '${t.type}', ${t.duration})`).join(', ');\nconst tbSQL = `INSERT INTO \\`wambs-consulting.dashboard_analytics.timeblock_tracking\\` (date, block_start, task, type, planned_duration) VALUES ${tbValues}`;\n\nconst sessionSQL = `INSERT INTO \\`wambs-consulting.dashboard_analytics.session_log\\` (date, session_start, tasks_completed, files_modified, skills_used, notes) VALUES ('${today}', TIMESTAMP('${today} 03:30:00'), 0, 0, 'n8n-auto-snapshot', 'Automated daily snapshot via n8n')`;\n\nreturn [\n  { json: { habitsSql: habitSQL, timeblocksSql: tbSQL, sessionSql: sessionSQL, today, summary: `Snapshot ${today}: 6 habits, 10 timeblocks, 1 session logged` } }\n];"
       },
       "id": "code-build-sql",
       "name": "Build INSERT SQL",
@@ -32,7 +32,7 @@
       "parameters": {
         "projectId": "wambs-consulting",
         "operation": "executeQuery",
-        "sqlQuery": "={{ $json.sql }}"
+        "sqlQuery": "={{ $json.habitsSql }}"
       },
       "id": "bq-habits",
       "name": "BQ: Habits",
@@ -50,7 +50,7 @@
       "parameters": {
         "projectId": "wambs-consulting",
         "operation": "executeQuery",
-        "sqlQuery": "={{ $json.sql }}"
+        "sqlQuery": "={{ $json.timeblocksSql }}"
       },
       "id": "bq-timeblocks",
       "name": "BQ: TimeBlocks",
@@ -68,7 +68,7 @@
       "parameters": {
         "projectId": "wambs-consulting",
         "operation": "executeQuery",
-        "sqlQuery": "={{ $json.sql }}"
+        "sqlQuery": "={{ $json.sessionSql }}"
       },
       "id": "bq-session",
       "name": "BQ: Session",
