@@ -97,6 +97,29 @@ export async function fetchAlerts() {
   return data || MOCK.alerts;
 }
 
+export async function fetchTodayHabits() {
+  const data = await apiFetch('/today-habits');
+  return data || [];
+}
+
+export async function toggleHabitApi(habitId, completed) {
+  if (CONFIG.USE_MOCK) {
+    console.log('[Mock] Toggle habit:', habitId, completed);
+    return { success: true, mock: true };
+  }
+  const res = await fetch(`${CONFIG.API_BASE_URL}/habits/${habitId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ completed }),
+  });
+  return res.json();
+}
+
+export async function fetchTodayKpis() {
+  const data = await apiFetch('/today-kpis');
+  return data || [];
+}
+
 export async function submitDailySnapshot(snapshotData) {
   if (CONFIG.USE_MOCK) {
     console.log('[Mock] Daily snapshot submitted:', snapshotData);

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { fetchTodayKpis, fetchKpiTrend } from '../services/bigqueryApi';
 
 const initialKPIs = [
   { id: 1, label: 'Mandants actifs', value: 72, target: 100, format: 'number', trend: [65, 68, 70, 71, 72] },
@@ -36,9 +37,37 @@ function MiniSparkline({ data, color, width = 80, height = 28 }) {
   );
 }
 
+const unitFormatMap = {
+  'EUR': 'currency', 'mandants': 'number', 'declarations': 'number',
+  'pct': 'rating', 'tasks': 'number', 'messages': 'number', 'objectifs': 'number',
+};
+
 function KPIBoard() {
-  const [kpis] = useState(initialKPIs);
+  const [kpis, setKpis] = useState(initialKPIs);
   const [view, setView] = useState('grid');
+
+  useEffect(() => {
+    Promise.all([fetchTodayKpis(), fetchKpiTrend(3)]).then(([todayKpis, trendData]) => {
+      if (todayKpis && todayKpis.length > 0) {
+        const liveKpis = todayKpis.map((k, i) => {
+          const trendValues = trendData
+            ? trendData.filter(t => t.kpi_name === k.kpi_name).map(t => t.avg_value).reverse()
+            : [];
+          if (trendValues.length > 0 && !trendValues.includes(k.kpi_value)) trendValues.push(k.kpi_value);
+          return {
+            id: i + 1,
+            label: k.kpi_name,
+            value: k.kpi_value,
+            target: k.pct_of_target ? Math.round(k.kpi_value / (k.pct_of_target / 100)) : 0,
+            format: unitFormatMap[k.unit] || 'number',
+            trend: trendValues.length >= 2 ? trendValues : [k.kpi_value * 0.8, k.kpi_value * 0.9, k.kpi_value],
+            inverse: k.kpi_name.includes('Délai') || k.kpi_name.includes('Inbox'),
+          };
+        });
+        setKpis(liveKpis);
+      }
+    }).catch(() => {});
+  }, []);
 
   const overallScore = Math.round(
     kpis.reduce((acc, k) => {

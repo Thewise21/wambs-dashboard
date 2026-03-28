@@ -14,14 +14,23 @@ const bigquery = new BigQuery({ projectId: PROJECT_ID });
 // CORS configuration
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PATCH'],
 }));
 app.use(express.json());
 
-// Helper: run a BigQuery query
+// Helper: flatten BigQuery DATE/TIMESTAMP objects { value: "..." } to plain strings
+function flattenRow(row) {
+  const flat = {};
+  for (const [key, val] of Object.entries(row)) {
+    flat[key] = val && typeof val === 'object' && 'value' in val ? val.value : val;
+  }
+  return flat;
+}
+
+// Helper: run a BigQuery query and flatten results
 async function runQuery(sql) {
   const [rows] = await bigquery.query({ query: sql, location: 'EU' });
-  return rows;
+  return rows.map(flattenRow);
 }
 
 // ─── Health check ───
@@ -106,6 +115,60 @@ app.get('/api/alerts', async (req, res) => {
     res.json(rows);
   } catch (err) {
     console.error('Error fetching alerts:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Today's habits (for DailySystem) ───
+app.get('/api/today-habits', async (req, res) => {
+  try {
+    const sql = `
+      SELECT habit_id, habit_name, icon,
+        LOGICAL_OR(completed) as completed,
+        MAX(streak) as streak
+      FROM \`${PROJECT_ID}.${DATASET}.daily_habits_log\`
+      WHERE date = CURRENT_DATE()
+      GROUP BY habit_id, habit_name, icon
+      ORDER BY habit_id
+    `;
+    const rows = await runQuery(sql);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching today habits:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Toggle a habit ───
+app.patch('/api/habits/:habitId', async (req, res) => {
+  try {
+    const habitId = parseInt(req.params.habitId);
+    const { completed } = req.body;
+    const sql = `
+      UPDATE \`${PROJECT_ID}.${DATASET}.daily_habits_log\`
+      SET completed = ${completed}
+      WHERE date = CURRENT_DATE() AND habit_id = ${habitId}
+    `;
+    await runQuery(sql);
+    res.json({ success: true, habit_id: habitId, completed });
+  } catch (err) {
+    console.error('Error toggling habit:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Today's KPIs (for KPIBoard) ───
+app.get('/api/today-kpis', async (req, res) => {
+  try {
+    const sql = `
+      SELECT kpi_name, kpi_value, unit, pct_of_target, alert_status
+      FROM \`${PROJECT_ID}.${DATASET}.v_kpi_alerts\`
+      ORDER BY kpi_name
+    `;
+    const rows = await runQuery(sql);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching today KPIs:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
