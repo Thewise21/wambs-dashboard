@@ -2,11 +2,13 @@ import { useState } from 'react';
 import GoalTracker from './components/GoalTracker';
 import DailySystem from './components/DailySystem';
 import KPIBoard from './components/KPIBoard';
+import HistoryPanel from './components/HistoryPanel';
 
 const tabs = [
   { id: 'daily', label: 'Système Quotidien', icon: '⚡' },
   { id: 'goals', label: 'Objectifs', icon: '🎯' },
   { id: 'kpi', label: 'KPI Board', icon: '📊' },
+  { id: 'history', label: 'Historique', icon: '📈' },
 ];
 
 function App() {
@@ -59,6 +61,7 @@ function App() {
           {activeTab === 'daily' && <DailySystem />}
           {activeTab === 'goals' && <GoalTracker />}
           {activeTab === 'kpi' && <KPIBoard />}
+          {activeTab === 'history' && <HistoryPanel />}
         </div>
       </main>
     </div>
