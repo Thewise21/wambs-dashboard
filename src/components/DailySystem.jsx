@@ -40,7 +40,7 @@ const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 function DailySystem() {
   const [habits, setHabits] = useState(defaultHabits);
   const [note, setNote] = useState('');
-  const [synced, setSynced] = useState(false);
+  // synced state removed (unused)
 
   useEffect(() => {
     fetchTodayHabits().then(rows => {
@@ -53,7 +53,6 @@ function DailySystem() {
           streak: r.streak || 0,
         }));
         setHabits(mapped);
-        setSynced(true);
       }
     }).catch(() => {});
   }, []);
