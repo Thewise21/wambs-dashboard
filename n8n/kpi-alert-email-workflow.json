@@ -1,0 +1,101 @@
+{
+  "name": "WAMBS KPI Alert → Gmail",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "triggerAtHour": 8 },
+            { "triggerAtHour": 17 }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Daily 8h + 17h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://wambs-dashboard-api-766270833352.europe-west1.run.app/api/alerts/critical?threshold=50",
+        "options": {}
+      },
+      "id": "http-check-alerts",
+      "name": "Check KPI Alerts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.has_alerts }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-has-alerts",
+      "name": "Has Alerts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "sendTo": "wambapoclaire@gmail.com",
+        "subject": "={{ $json.email_subject }}",
+        "message": "={{ $json.email_body }}",
+        "options": {}
+      },
+      "id": "gmail-send-alert",
+      "name": "Send Alert Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [900, 240],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_WITH_YOUR_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "no-alert-noop",
+      "name": "No Alerts - OK",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [900, 400]
+    }
+  ],
+  "connections": {
+    "Daily 8h + 17h": {
+      "main": [
+        [{ "node": "Check KPI Alerts", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check KPI Alerts": {
+      "main": [
+        [{ "node": "Has Alerts?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Has Alerts?": {
+      "main": [
+        [{ "node": "Send Alert Email", "type": "main", "index": 0 }],
+        [{ "node": "No Alerts - OK", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Berlin"
+  },
+  "tags": [
+    { "name": "dashboard" },
+    { "name": "alerts" }
+  ]
+}
