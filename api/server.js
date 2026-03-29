@@ -173,6 +173,24 @@ app.get('/api/today-kpis', async (req, res) => {
   }
 });
 
+// ─── Update objective progress ───
+app.patch('/api/objectives/:objectiveId', async (req, res) => {
+  try {
+    const objectiveId = parseInt(req.params.objectiveId);
+    const { current_value, status } = req.body;
+    const sql = `
+      UPDATE \`${PROJECT_ID}.${DATASET}.objectives\`
+      SET current_value = ${current_value}, status = '${status}', updated_at = CURRENT_TIMESTAMP()
+      WHERE objective_id = ${objectiveId}
+    `;
+    await runQuery(sql);
+    res.json({ success: true, objective_id: objectiveId, current_value, status });
+  } catch (err) {
+    console.error('Error updating objective:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Submit daily snapshot ───
 app.post('/api/snapshot', async (req, res) => {
   try {

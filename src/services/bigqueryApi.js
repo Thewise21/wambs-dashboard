@@ -87,6 +87,19 @@ export async function fetchObjectivesProgress() {
   return data || [];
 }
 
+export async function updateObjective(objectiveId, currentValue, status) {
+  if (CONFIG.USE_MOCK) {
+    console.log('[Mock] Update objective:', objectiveId, currentValue, status);
+    return { success: true, mock: true };
+  }
+  const res = await fetch(`${CONFIG.API_BASE_URL}/objectives/${objectiveId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ current_value: currentValue, status }),
+  });
+  return res.json();
+}
+
 export async function fetchDailyProductivity(days = 30) {
   const data = await apiFetch(`/productivity?days=${days}`);
   return data || MOCK.productivity;

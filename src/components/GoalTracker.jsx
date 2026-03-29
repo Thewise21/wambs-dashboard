@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { fetchObjectivesProgress, updateObjective } from '../services/bigqueryApi';
 
 const statuses = ['Non démarré', 'En cours', 'Avancé', 'Terminé'];
 const statusColors = {
@@ -154,6 +155,27 @@ function GoalTracker() {
   const [showForm, setShowForm] = useState(false);
   const [newGoal, setNewGoal] = useState({ title: '', target: '', current: '0', unit: '', category: 'Production', status: 'Non démarré' });
 
+  useEffect(() => {
+    fetchObjectivesProgress().then(data => {
+      if (data && data.length > 0) {
+        const liveGoals = data.map(obj => {
+          const local = initialGoals.find(g => g.id === obj.objective_id);
+          return {
+            id: obj.objective_id,
+            title: obj.objective_name,
+            target: obj.target,
+            current: obj.current_value,
+            unit: obj.unit,
+            category: obj.category,
+            status: obj.status,
+            subtasks: local ? local.subtasks : [],
+          };
+        });
+        setGoals(liveGoals);
+      }
+    }).catch(() => {});
+  }, []);
+
   const categories = ['Tous', ...Object.keys(categoryColors)];
   const filtered = filter === 'Tous' ? goals : goals.filter(g => g.category === filter);
 
@@ -174,12 +196,15 @@ function GoalTracker() {
       else if (pct >= 60) status = 'Avancé';
       else if (pct > 0) status = 'En cours';
       else status = 'Non démarré';
+      updateObjective(id, current, status).catch(() => {});
       return { ...g, current, status };
     }));
     setEditingId(null);
   };
 
   const handleStatusChange = (id, status) => {
+    const goal = goals.find(g => g.id === id);
+    if (goal) updateObjective(id, goal.current, status).catch(() => {});
     setGoals(goals.map(g => g.id === id ? { ...g, status } : g));
   };
 
