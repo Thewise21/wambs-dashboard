@@ -231,6 +231,49 @@ app.post('/api/snapshot', async (req, res) => {
   }
 });
 
+// ─── Critical alerts (for n8n email notifications) ───
+app.get('/api/alerts/critical', async (req, res) => {
+  try {
+    const threshold = parseInt(req.query.threshold) || 50; // default: alert if < 50% of target
+    const sql = `
+      SELECT kpi_name, kpi_value, pct_of_target, alert_status, unit
+      FROM \`${PROJECT_ID}.${DATASET}.v_kpi_alerts\`
+      WHERE (pct_of_target IS NOT NULL AND pct_of_target < ${threshold})
+         OR alert_status LIKE 'WARNING%'
+         OR alert_status LIKE 'ALERT%'
+      ORDER BY COALESCE(pct_of_target, 0) ASC
+    `;
+    const rows = await runQuery(sql);
+
+    // Build email-ready summary
+    const summary = rows.map(r => ({
+      ...r,
+      message: `${r.kpi_name}: ${r.kpi_value} ${r.unit} (${r.pct_of_target != null ? r.pct_of_target + '% de l\'objectif' : 'pas d\'objectif'}) — ${r.alert_status}`,
+    }));
+
+    const hasAlerts = rows.length > 0;
+    const emailSubject = hasAlerts
+      ? `⚠️ WAMBS Dashboard: ${rows.length} KPI${rows.length > 1 ? 's' : ''} sous le seuil (${threshold}%)`
+      : `✅ WAMBS Dashboard: Tous les KPIs OK`;
+    const emailBody = hasAlerts
+      ? `Alertes KPI du ${new Date().toLocaleDateString('fr-FR')}:\n\n${summary.map(s => `• ${s.message}`).join('\n')}\n\n—\nDashboard: https://thewise21.github.io/wambs-dashboard/`
+      : `Aucune alerte. Tous les KPIs sont au-dessus de ${threshold}% de l'objectif.`;
+
+    res.json({
+      has_alerts: hasAlerts,
+      count: rows.length,
+      threshold,
+      email_subject: emailSubject,
+      email_body: emailBody,
+      alerts: summary,
+      checked_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('Error fetching critical alerts:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Raw SQL query (admin only, for debugging) ───
 app.post('/api/query', async (req, res) => {
   try {
@@ -251,5 +294,5 @@ app.post('/api/query', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`WAMBS Dashboard API running on port ${PORT}`);
   console.log(`Project: ${PROJECT_ID} | Dataset: ${DATASET}`);
-  console.log(`Endpoints: /api/health, /api/habits, /api/kpi-trend, /api/objectives, /api/productivity, /api/alerts, /api/snapshot`);
+  console.log(`Endpoints: /api/health, /api/habits, /api/kpi-trend, /api/objectives, /api/productivity, /api/alerts, /api/alerts/critical, /api/snapshot`);
 });
