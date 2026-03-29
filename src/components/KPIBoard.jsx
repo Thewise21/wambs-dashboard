@@ -15,6 +15,7 @@ const formatValue = (value, format) => {
     case 'currency': return `€${value.toLocaleString()}`;
     case 'hours': return `${value}h`;
     case 'rating': return `${value}/5`;
+    case 'percent': return `${value}%`;
     case 'days': return `${value}j`;
     default: return value;
   }
@@ -39,7 +40,7 @@ function MiniSparkline({ data, color, width = 80, height = 28 }) {
 
 const unitFormatMap = {
   'EUR': 'currency', 'mandants': 'number', 'declarations': 'number',
-  'pct': 'rating', 'tasks': 'number', 'messages': 'number', 'objectifs': 'number',
+  'pct': 'percent', 'tasks': 'number', 'messages': 'number', 'objectifs': 'number',
 };
 
 function KPIBoard() {
@@ -69,14 +70,15 @@ function KPIBoard() {
     }).catch(() => {});
   }, []);
 
-  const overallScore = Math.round(
-    kpis.reduce((acc, k) => {
+  const scorableKpis = kpis.filter(k => k.target > 0);
+  const overallScore = scorableKpis.length > 0 ? Math.round(
+    scorableKpis.reduce((acc, k) => {
       const pct = k.inverse
         ? Math.min((k.target / k.value) * 100, 100)
         : Math.min((k.value / k.target) * 100, 100);
-      return acc + pct;
-    }, 0) / kpis.length
-  );
+      return acc + (isNaN(pct) ? 0 : pct);
+    }, 0) / scorableKpis.length
+  ) : 0;
 
   return (
     <div style={styles.container}>
@@ -108,7 +110,7 @@ function KPIBoard() {
 
       <div style={view === 'grid' ? styles.grid : styles.list}>
         {kpis.map(kpi => {
-          const pct = kpi.inverse
+          const pct = kpi.target === 0 ? 0 : kpi.inverse
             ? Math.round(Math.min((kpi.target / kpi.value) * 100, 100))
             : Math.round(Math.min((kpi.value / kpi.target) * 100, 100));
           const color = pct >= 80 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444';
