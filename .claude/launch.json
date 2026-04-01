@@ -12,6 +12,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["serve", "-s", "build", "-l", "5000"],
       "port": 5000
+    },
+    {
+      "name": "mockup-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "mockup-preview", "-p", "8090", "-c-1"],
+      "port": 8090
     }
   ]
 }

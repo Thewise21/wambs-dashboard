@@ -154,12 +154,16 @@ const initialGoals = [
     ]},
 ];
 
+const MONTHS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+const CURRENT_MONTH = 3; // April (0-indexed)
+
 function GoalTracker() {
   const [goals, setGoals] = useState(initialGoals);
   const [filter, setFilter] = useState('Tous');
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(CURRENT_MONTH);
   const [newGoal, setNewGoal] = useState({ title: '', target: '', current: '0', unit: '', category: 'Professionnel', status: 'Non démarré' });
 
   useEffect(() => {
@@ -257,6 +261,37 @@ function GoalTracker() {
           {showForm ? '✕ Fermer' : '+ Objectif'}
         </button>
       </div>
+
+      {/* Month switcher */}
+      <div style={styles.monthBar}>
+        {MONTHS.map((m, i) => {
+          const isActive = i === selectedMonth;
+          const isPast = i < CURRENT_MONTH;
+          const isFuture = i > CURRENT_MONTH;
+          return (
+            <button
+              key={m}
+              onClick={() => setSelectedMonth(i)}
+              style={{
+                ...styles.monthPill,
+                ...(isActive ? styles.monthPillActive : {}),
+                ...(isPast ? styles.monthPillPast : {}),
+                ...(isFuture ? styles.monthPillFuture : {}),
+              }}
+            >
+              {m}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Inactive month message */}
+      {selectedMonth !== CURRENT_MONTH && (
+        <div style={styles.monthNotice}>
+          <span style={styles.monthNoticeIcon}>ℹ️</span>
+          <span>Les objectifs pour {MONTHS[selectedMonth]} ne sont pas encore disponibles. Affichage du mois actif (Avril).</span>
+        </div>
+      )}
 
       {/* Global progress bar */}
       <div style={styles.globalBar}>
@@ -465,6 +500,28 @@ const styles = {
     background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8,
     padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
   },
+  monthBar: {
+    display: 'flex', gap: 3, background: '#f1f5f9', borderRadius: 10,
+    padding: 3, marginBottom: 16,
+  },
+  monthPill: {
+    flex: 1, textAlign: 'center', padding: '7px 0', borderRadius: 7,
+    fontSize: 12, fontWeight: 500, color: '#94a3b8', cursor: 'pointer',
+    border: 'none', background: 'transparent', fontFamily: 'inherit',
+    transition: 'all 0.2s',
+  },
+  monthPillActive: {
+    background: '#2563eb', color: '#fff', fontWeight: 700,
+    boxShadow: '0 1px 3px rgba(37,99,235,0.3)',
+  },
+  monthPillPast: { color: '#cbd5e1' },
+  monthPillFuture: { color: '#d1d5db' },
+  monthNotice: {
+    display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px',
+    background: '#eff6ff', borderRadius: 8, marginBottom: 12,
+    fontSize: 12, color: '#2563eb', border: '1px solid #bfdbfe',
+  },
+  monthNoticeIcon: { fontSize: 14 },
   globalBar: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 },
   globalBarTrack: { flex: 1, height: 10, borderRadius: 5, background: '#e2e8f0' },
   globalBarFill: { height: '100%', borderRadius: 5, transition: 'width 0.4s ease' },

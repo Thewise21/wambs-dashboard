@@ -3,26 +3,54 @@ import GoalTracker from './components/GoalTracker';
 import DailySystem from './components/DailySystem';
 import KPIBoard from './components/KPIBoard';
 import HistoryPanel from './components/HistoryPanel';
+import CalendarView from './components/CalendarView';
 
 const tabs = [
   { id: 'daily', label: 'Système Quotidien', icon: '⚡' },
   { id: 'goals', label: 'Objectifs', icon: '🎯' },
+  { id: 'calendar', label: 'Calendrier', icon: '📅' },
   { id: 'kpi', label: 'KPI Board', icon: '📊' },
   { id: 'history', label: 'Historique', icon: '📈' },
 ];
 
 function App() {
   const [activeTab, setActiveTab] = useState('daily');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const sidebarWidth = sidebarCollapsed ? 64 : 240;
 
   return (
     <div style={styles.app}>
       {/* Sidebar */}
-      <aside style={styles.sidebar}>
-        <div style={styles.brand}>
+      <aside style={{
+        ...styles.sidebar,
+        width: sidebarWidth,
+        transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}>
+        {/* Brand */}
+        <div style={{
+          ...styles.brand,
+          justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+          padding: sidebarCollapsed ? '24px 0' : '24px 20px',
+        }}>
           <div style={styles.logo}>W</div>
-          <span style={styles.brandName}>WAMB'S</span>
+          {!sidebarCollapsed && <span style={styles.brandName}>WAMB'S</span>}
         </div>
-        <nav style={styles.nav}>
+
+        {/* Collapse toggle */}
+        <button
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          style={styles.collapseBtn}
+          title={sidebarCollapsed ? 'Ouvrir le menu' : 'Réduire le menu'}
+        >
+          {sidebarCollapsed ? '▶' : '◀'}
+        </button>
+
+        {/* Nav */}
+        <nav style={{
+          ...styles.nav,
+          padding: sidebarCollapsed ? '8px 6px' : '16px 12px',
+        }}>
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -30,24 +58,39 @@ function App() {
               style={{
                 ...styles.navItem,
                 ...(activeTab === tab.id ? styles.navItemActive : {}),
+                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                padding: sidebarCollapsed ? '11px 0' : '11px 14px',
               }}
+              title={sidebarCollapsed ? tab.label : undefined}
             >
               <span style={styles.navIcon}>{tab.icon}</span>
-              <span>{tab.label}</span>
+              {!sidebarCollapsed && <span>{tab.label}</span>}
             </button>
           ))}
         </nav>
-        <div style={styles.sidebarFooter}>
+
+        {/* Footer */}
+        <div style={{
+          ...styles.sidebarFooter,
+          justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+          padding: sidebarCollapsed ? '16px 0' : '16px 20px',
+        }}>
           <div style={styles.userAvatar}>PW</div>
-          <div style={styles.userInfo}>
-            <span style={styles.userName}>Poclaire Wamba</span>
-            <span style={styles.userRole}>Steuerberater</span>
-          </div>
+          {!sidebarCollapsed && (
+            <div style={styles.userInfo}>
+              <span style={styles.userName}>Poclaire Wamba</span>
+              <span style={styles.userRole}>Geschäftsführer</span>
+            </div>
+          )}
         </div>
       </aside>
 
       {/* Main content */}
-      <main style={styles.main}>
+      <main style={{
+        ...styles.main,
+        marginLeft: sidebarWidth,
+        transition: 'margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}>
         <header style={styles.header}>
           <h1 style={styles.pageTitle}>
             {tabs.find(t => t.id === activeTab)?.icon}{' '}
@@ -60,6 +103,7 @@ function App() {
         <div style={styles.content}>
           {activeTab === 'daily' && <DailySystem />}
           {activeTab === 'goals' && <GoalTracker />}
+          {activeTab === 'calendar' && <CalendarView />}
           {activeTab === 'kpi' && <KPIBoard />}
           {activeTab === 'history' && <HistoryPanel />}
         </div>
@@ -75,7 +119,6 @@ const styles = {
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   },
   sidebar: {
-    width: 240,
     background: '#1e293b',
     color: '#e2e8f0',
     display: 'flex',
@@ -85,13 +128,14 @@ const styles = {
     left: 0,
     bottom: 0,
     zIndex: 100,
+    overflow: 'hidden',
   },
   brand: {
     display: 'flex',
     alignItems: 'center',
     gap: 12,
-    padding: '24px 20px',
     borderBottom: '1px solid #334155',
+    minHeight: 84,
   },
   logo: {
     width: 36,
@@ -104,11 +148,22 @@ const styles = {
     fontSize: 18,
     fontWeight: 700,
     color: '#fff',
+    flexShrink: 0,
   },
-  brandName: { fontSize: 18, fontWeight: 700, letterSpacing: 1 },
+  brandName: { fontSize: 18, fontWeight: 700, letterSpacing: 1, whiteSpace: 'nowrap' },
+  collapseBtn: {
+    background: 'transparent',
+    border: 'none',
+    color: '#64748b',
+    fontSize: 12,
+    cursor: 'pointer',
+    padding: '6px 0',
+    textAlign: 'center',
+    fontFamily: 'inherit',
+    transition: 'color 0.15s',
+  },
   nav: {
     flex: 1,
-    padding: '16px 12px',
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
@@ -117,7 +172,6 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 10,
-    padding: '11px 14px',
     borderRadius: 8,
     border: 'none',
     background: 'transparent',
@@ -128,17 +182,18 @@ const styles = {
     textAlign: 'left',
     transition: 'all 0.15s',
     fontFamily: 'inherit',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
   },
   navItemActive: {
     background: '#2563eb',
     color: '#fff',
   },
-  navIcon: { fontSize: 18 },
+  navIcon: { fontSize: 18, flexShrink: 0 },
   sidebarFooter: {
     display: 'flex',
     alignItems: 'center',
     gap: 10,
-    padding: '16px 20px',
     borderTop: '1px solid #334155',
   },
   userAvatar: {
@@ -152,13 +207,13 @@ const styles = {
     fontSize: 12,
     fontWeight: 600,
     color: '#fff',
+    flexShrink: 0,
   },
-  userInfo: { display: 'flex', flexDirection: 'column' },
-  userName: { fontSize: 13, fontWeight: 600, color: '#e2e8f0' },
-  userRole: { fontSize: 11, color: '#64748b' },
+  userInfo: { display: 'flex', flexDirection: 'column', overflow: 'hidden' },
+  userName: { fontSize: 13, fontWeight: 600, color: '#e2e8f0', whiteSpace: 'nowrap' },
+  userRole: { fontSize: 11, color: '#64748b', whiteSpace: 'nowrap' },
   main: {
     flex: 1,
-    marginLeft: 240,
     background: '#f1f5f9',
     minHeight: '100vh',
   },
