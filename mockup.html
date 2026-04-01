@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WAMBS Dashboard — Feature Mockups</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #fff; }
+  h1 { text-align: center; padding: 24px; font-size: 20px; color: #94a3b8; }
+  h1 span { color: #2563eb; }
+  .section { margin: 0 auto 40px; max-width: 1200px; padding: 0 20px; }
+  .section h2 { font-size: 16px; color: #f59e0b; margin-bottom: 12px; border-left: 3px solid #f59e0b; padding-left: 12px; }
+  .mockup-frame { background: #1e293b; border-radius: 16px; padding: 20px; border: 1px solid #334155; }
+
+  /* ===== FEATURE 1: CALENDAR ===== */
+  .calendar-demo { background: #f8fafc; border-radius: 12px; padding: 16px; }
+  .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .cal-header h3 { font-size: 18px; color: #1e293b; }
+  .cal-nav { display: flex; gap: 8px; }
+  .cal-nav button { background: #e2e8f0; border: none; border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer; color: #475569; }
+  .cal-nav button.active { background: #2563eb; color: #fff; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day-header { text-align: center; font-size: 11px; font-weight: 600; color: #94a3b8; padding: 6px 0; }
+  .cal-cell { background: #fff; border: 1px solid #f1f5f9; border-radius: 4px; min-height: 100px; padding: 4px; position: relative; }
+  .cal-cell.empty { background: #fafafa; }
+  .cal-cell .day-num { font-size: 11px; color: #94a3b8; margin-bottom: 4px; }
+  .cal-cell .day-num.today { background: #2563eb; color: #fff; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+  .gantt-bar { height: 10px; border-radius: 3px; margin: 1px 0; font-size: 7px; color: #fff; padding: 0 3px; line-height: 10px; overflow: hidden; white-space: nowrap; }
+  .bar-pink { background: #ec4899; }
+  .bar-purple { background: #8b5cf6; }
+  .bar-blue { background: #2563eb; }
+  .bar-blue2 { background: #3b82f6; }
+  .bar-blue3 { background: #60a5fa; }
+  .bar-green { background: #10b981; }
+  .bar-green2 { background: #34d399; }
+  .cal-legend { display: flex; gap: 16px; margin-top: 12px; justify-content: center; }
+  .cal-legend span { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #475569; }
+  .cal-legend .dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  /* ===== FEATURE 2: MONTH SWITCHER ===== */
+  .month-demo { background: #f8fafc; border-radius: 12px; padding: 20px; }
+  .month-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .month-header h3 { font-size: 18px; color: #1e293b; }
+  .month-header .subtitle { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+  .month-header button { background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-size: 12px; font-weight: 600; }
+  .month-bar { display: flex; gap: 2px; background: #f1f5f9; border-radius: 8px; padding: 3px; margin-bottom: 16px; }
+  .month-pill { flex: 1; text-align: center; padding: 6px 0; border-radius: 6px; font-size: 11px; color: #cbd5e1; cursor: pointer; transition: all 0.2s; }
+  .month-pill.past { color: #d1d5db; }
+  .month-pill.active { background: #2563eb; color: #fff; font-weight: 700; }
+  .month-pill:hover:not(.active) { background: #e2e8f0; color: #475569; }
+  .progress-global { height: 8px; background: #e2e8f0; border-radius: 4px; margin-bottom: 16px; }
+  .progress-global .fill { height: 100%; border-radius: 4px; background: #2563eb; width: 18%; }
+  .obj-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 10px; border-left: 4px solid; }
+  .obj-card .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .obj-card .badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+  .obj-card .status { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; border: 1px solid; }
+  .obj-card h4 { font-size: 14px; color: #1e293b; margin-bottom: 8px; }
+  .obj-card .bar { height: 6px; background: #f1f5f9; border-radius: 3px; margin-bottom: 6px; }
+  .obj-card .bar .fill { height: 100%; border-radius: 3px; }
+  .obj-card .vals { font-size: 12px; color: #94a3b8; }
+  .obj-card .vals strong { color: #1e293b; font-size: 16px; }
+
+  /* ===== FEATURE 3: COLLAPSIBLE SIDEBAR ===== */
+  .sidebar-demo { display: flex; gap: 16px; }
+  .sidebar-state { flex: 1; background: #f8fafc; border-radius: 12px; overflow: hidden; }
+  .state-label { padding: 8px 12px; font-size: 11px; font-weight: 700; }
+  .state-label.expanded { background: #dbeafe; color: #2563eb; }
+  .state-label.collapsed { background: #dcfce7; color: #166534; }
+  .sidebar-flex { display: flex; height: 500px; }
+  .sidebar-exp { width: 200px; background: #0f172a; padding: 16px; display: flex; flex-direction: column; }
+  .sidebar-col { width: 56px; background: #0f172a; padding: 8px; display: flex; flex-direction: column; align-items: center; }
+  .sb-logo { color: #fff; font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .sb-logo-text { color: #fff; font-size: 12px; font-weight: 600; }
+  .sb-logo-sub { color: #64748b; font-size: 9px; margin-bottom: 12px; }
+  .sb-divider { height: 1px; background: #1e3a5f; margin: 8px 0; width: 100%; }
+  .sb-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; margin: 2px 0; font-size: 12px; color: #64748b; cursor: pointer; }
+  .sb-item.active { background: #1e3a5f; color: #fff; border-left: 3px solid #2563eb; }
+  .sb-item-icon { font-size: 16px; }
+  .sb-item-col { display: flex; align-items: center; justify-content: center; width: 40px; height: 36px; border-radius: 8px; margin: 2px 0; font-size: 16px; cursor: pointer; }
+  .sb-item-col.active { background: #1e3a5f; border-left: 3px solid #2563eb; }
+  .sb-avatar { margin-top: auto; display: flex; align-items: center; gap: 8px; }
+  .sb-avatar-circle { width: 28px; height: 28px; border-radius: 50%; background: #2563eb; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700; }
+  .sb-avatar-text { color: #fff; font-size: 11px; font-weight: 600; }
+  .sb-avatar-role { color: #64748b; font-size: 9px; }
+  .sb-toggle { background: #1e293b; border: none; color: #64748b; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 12px; margin-left: auto; }
+  .content-area { flex: 1; background: #f1f5f9; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .content-area h4 { font-size: 14px; color: #1e293b; }
+  .content-area .size-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+  .content-area .size-tag.normal { background: #dbeafe; color: #2563eb; }
+  .content-area .size-tag.wide { background: #dcfce7; color: #166534; }
+  .mini-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; border-left: 3px solid; }
+  .mini-card .title { font-size: 11px; font-weight: 600; color: #1e293b; }
+  .mini-card .minibar { height: 4px; background: #f1f5f9; border-radius: 2px; margin-top: 6px; }
+  .mini-card .minibar .fill { height: 100%; border-radius: 2px; }
+  .tooltip-demo { position: relative; }
+  .tooltip { position: absolute; left: 62px; background: #1e293b; color: #fff; font-size: 10px; padding: 4px 10px; border-radius: 4px; white-space: nowrap; }
+  .tooltip::before { content: ''; position: absolute; left: -4px; top: 50%; transform: translateY(-50%); border: 4px solid transparent; border-right-color: #1e293b; }
+</style>
+</head>
+<body>
+
+<h1>WAMB'S Dashboard — <span>3 Feature Mockups</span></h1>
+
+<!-- FEATURE 1 -->
+<div class="section">
+  <h2>Feature 1 — Calendar View (Gantt-style)</h2>
+  <div class="mockup-frame">
+    <div class="calendar-demo">
+      <div class="cal-header">
+        <h3>◀ &nbsp; Calendrier — Avril 2026 &nbsp; ▶</h3>
+        <div class="cal-nav">
+          <button class="active">Mois</button>
+          <button>Semaine</button>
+          <button>Année</button>
+        </div>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-day-header">LUN</div><div class="cal-day-header">MAR</div><div class="cal-day-header">MER</div><div class="cal-day-header">JEU</div><div class="cal-day-header">VEN</div><div class="cal-day-header">SAM</div><div class="cal-day-header">DIM</div>
+        <!-- Row 1: empty, empty, 1, 2, 3, 4, 5 -->
+        <div class="cal-cell empty"></div>
+        <div class="cal-cell empty"></div>
+        <div class="cal-cell"><div class="day-num today">1</div><div class="gantt-bar bar-pink">Santé</div><div class="gantt-bar bar-blue">15 RDV</div><div class="gantt-bar bar-blue2">100 Décl.</div><div class="gantt-bar bar-green">Recouv.</div><div class="gantt-bar bar-green2">Fact. 15k</div></div>
+        <div class="cal-cell"><div class="day-num">2</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar bar-green"></div><div class="gantt-bar bar-green2"></div></div>
+        <div class="cal-cell"><div class="day-num">3</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar bar-green"></div><div class="gantt-bar bar-green2"></div></div>
+        <div class="cal-cell"><div class="day-num">4</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-green"></div></div>
+        <div class="cal-cell"><div class="day-num">5</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-purple">Église</div><div class="gantt-bar bar-green"></div></div>
+        <!-- Row 2: 6-12 -->
+        <div class="cal-cell"><div class="day-num">6</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-purple">Église</div><div class="gantt-bar bar-blue">15 RDV</div><div class="gantt-bar bar-blue2">100 Décl.</div><div class="gantt-bar bar-green">Recouv.</div><div class="gantt-bar bar-green2">Fact. 15k</div></div>
+        <div class="cal-cell"><div class="day-num">7</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar bar-blue3">50 Compt.</div><div class="gantt-bar bar-green"></div><div class="gantt-bar bar-green2"></div></div>
+        <div class="cal-cell"><div class="day-num">8</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar bar-blue3"></div><div class="gantt-bar bar-green"></div><div class="gantt-bar bar-green2"></div></div>
+        <div class="cal-cell"><div class="day-num">9</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar bar-blue3"></div><div class="gantt-bar bar-green"></div><div class="gantt-bar bar-green2"></div></div>
+        <div class="cal-cell"><div class="day-num">10</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar bar-blue3"></div><div class="gantt-bar bar-green"></div><div class="gantt-bar bar-green2"></div></div>
+        <div class="cal-cell"><div class="day-num">11</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-green"></div></div>
+        <div class="cal-cell"><div class="day-num">12</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-green"></div></div>
+        <!-- Row 3: 13-19 -->
+        <div class="cal-cell"><div class="day-num">13</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue">15 RDV</div><div class="gantt-bar bar-blue2">100 Décl.</div><div class="gantt-bar bar-blue3">50 Compt.</div><div class="gantt-bar bar-green">Recouv.</div><div class="gantt-bar bar-green2">Fact. 15k</div></div>
+        <div class="cal-cell"><div class="day-num">14</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar bar-blue3"></div><div class="gantt-bar" style="background:#93c5fd">Bus. Plan</div><div class="gantt-bar bar-green"></div><div class="gantt-bar bar-green2"></div></div>
+        <div class="cal-cell"><div class="day-num">15</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar bar-blue3"></div><div class="gantt-bar" style="background:#93c5fd"></div><div class="gantt-bar bar-green"></div><div class="gantt-bar bar-green2"></div></div>
+        <div class="cal-cell"><div class="day-num">16</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar bar-blue3"></div><div class="gantt-bar" style="background:#93c5fd"></div><div class="gantt-bar bar-green"></div><div class="gantt-bar bar-green2"></div></div>
+        <div class="cal-cell"><div class="day-num">17</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar bar-blue3"></div><div class="gantt-bar" style="background:#93c5fd"></div><div class="gantt-bar bar-green"></div><div class="gantt-bar bar-green2"></div></div>
+        <div class="cal-cell"><div class="day-num">18</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-green"></div><div class="gantt-bar bar-green2">Fact. fin</div></div>
+        <div class="cal-cell"><div class="day-num">19</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-purple">Église</div><div class="gantt-bar bar-green"></div></div>
+        <!-- Row 4: 20-26 -->
+        <div class="cal-cell"><div class="day-num">20</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-purple">Église</div><div class="gantt-bar bar-blue">15 RDV</div><div class="gantt-bar bar-blue2">100 Décl.</div><div class="gantt-bar bar-blue3">50 Compt.</div><div class="gantt-bar" style="background:#93c5fd">Bus. Plan</div><div class="gantt-bar bar-green">Recouv.</div></div>
+        <div class="cal-cell"><div class="day-num">21</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar bar-blue3"></div><div class="gantt-bar" style="background:#93c5fd"></div><div class="gantt-bar bar-green"></div></div>
+        <div class="cal-cell"><div class="day-num">22</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar bar-blue3"></div><div class="gantt-bar" style="background:#93c5fd"></div><div class="gantt-bar bar-green"></div></div>
+        <div class="cal-cell"><div class="day-num">23</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar bar-blue3"></div><div class="gantt-bar" style="background:#93c5fd"></div><div class="gantt-bar bar-green"></div></div>
+        <div class="cal-cell"><div class="day-num">24</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar bar-blue3"></div><div class="gantt-bar" style="background:#93c5fd"></div><div class="gantt-bar bar-green"></div></div>
+        <div class="cal-cell"><div class="day-num">25</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue3">Compt.fin</div><div class="gantt-bar bar-green"></div></div>
+        <div class="cal-cell"><div class="day-num">26</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-green"></div></div>
+        <!-- Row 5: 27-30 -->
+        <div class="cal-cell"><div class="day-num">27</div><div class="gantt-bar bar-pink">Santé</div><div class="gantt-bar bar-blue">15 RDV</div><div class="gantt-bar bar-blue2">100 Décl.</div><div class="gantt-bar" style="background:#93c5fd">Bus. Plan</div><div class="gantt-bar bar-green">Recouv.</div></div>
+        <div class="cal-cell"><div class="day-num">28</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar" style="background:#93c5fd"></div><div class="gantt-bar bar-green"></div></div>
+        <div class="cal-cell"><div class="day-num">29</div><div class="gantt-bar bar-pink"></div><div class="gantt-bar bar-blue"></div><div class="gantt-bar bar-blue2"></div><div class="gantt-bar" style="background:#93c5fd"></div><div class="gantt-bar bar-green"></div></div>
+        <div class="cal-cell"><div class="day-num">30</div><div class="gantt-bar bar-pink">fin</div><div class="gantt-bar bar-blue">fin</div><div class="gantt-bar bar-blue2">fin</div><div class="gantt-bar" style="background:#93c5fd">fin</div><div class="gantt-bar bar-green">fin</div></div>
+        <div class="cal-cell empty"></div>
+        <div class="cal-cell empty"></div>
+        <div class="cal-cell empty"></div>
+      </div>
+      <div class="cal-legend">
+        <span><div class="dot" style="background:#ec4899"></div>Familiale</span>
+        <span><div class="dot" style="background:#8b5cf6"></div>Sociale</span>
+        <span><div class="dot" style="background:#2563eb"></div>Professionnel</span>
+        <span><div class="dot" style="background:#10b981"></div>Financier</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURE 2 -->
+<div class="section">
+  <h2>Feature 2 — Month Switcher in Objectives</h2>
+  <div class="mockup-frame">
+    <div class="month-demo">
+      <div class="month-header">
+        <div>
+          <h3>Objectifs Avril 2026</h3>
+          <div class="subtitle">0/20 atteints — Progression globale 18%</div>
+        </div>
+        <button>+ Objectif</button>
+      </div>
+      <div class="month-bar">
+        <div class="month-pill past">Jan</div>
+        <div class="month-pill past">Fév</div>
+        <div class="month-pill past">Mar</div>
+        <div class="month-pill active">Avr</div>
+        <div class="month-pill">Mai</div>
+        <div class="month-pill">Jun</div>
+        <div class="month-pill">Jul</div>
+        <div class="month-pill">Aoû</div>
+        <div class="month-pill">Sep</div>
+        <div class="month-pill">Oct</div>
+        <div class="month-pill">Nov</div>
+        <div class="month-pill">Déc</div>
+      </div>
+      <div class="progress-global"><div class="fill"></div></div>
+
+      <div class="obj-card" style="border-left-color: #10b981;">
+        <div class="top">
+          <span class="badge" style="background:#ecfdf5;color:#10b981;">Financier</span>
+          <span class="status" style="color:#10b981;border-color:#10b981;">En cours</span>
+        </div>
+        <h4>Recouvrement 36.850€</h4>
+        <div class="bar"><div class="fill" style="width:23%;background:#10b981;"></div></div>
+        <div class="vals"><strong>€8,500</strong> / €36,850</div>
+      </div>
+
+      <div class="obj-card" style="border-left-color: #2563eb;">
+        <div class="top">
+          <span class="badge" style="background:#eff6ff;color:#2563eb;">Professionnel</span>
+          <span class="status" style="color:#2563eb;border-color:#2563eb;">En cours</span>
+        </div>
+        <h4>100 Déclarations fiscales</h4>
+        <div class="bar"><div class="fill" style="width:18%;background:#2563eb;"></div></div>
+        <div class="vals"><strong>18</strong> / 100 déclarations</div>
+      </div>
+
+      <div class="obj-card" style="border-left-color: #8b5cf6;">
+        <div class="top">
+          <span class="badge" style="background:#f5f3ff;color:#8b5cf6;">Sociale</span>
+          <span class="status" style="color:#94a3b8;border-color:#94a3b8;">Non démarré</span>
+        </div>
+        <h4>Église 2x/mois</h4>
+        <div class="bar"><div class="fill" style="width:0%;background:#8b5cf6;"></div></div>
+        <div class="vals"><strong>0</strong> / 8 visites</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURE 3 -->
+<div class="section">
+  <h2>Feature 3 — Collapsible Sidebar</h2>
+  <div class="mockup-frame">
+    <div class="sidebar-demo">
+      <!-- EXPANDED -->
+      <div class="sidebar-state">
+        <div class="state-label expanded">◀ EXPANDED (210px) — Full menu visible</div>
+        <div class="sidebar-flex">
+          <div class="sidebar-exp">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div class="sb-logo">W</div>
+                <div class="sb-logo-text">WAMB'S</div>
+                <div class="sb-logo-sub">Consulting</div>
+              </div>
+              <button class="sb-toggle">◁</button>
+            </div>
+            <div class="sb-divider"></div>
+            <div class="sb-item"><span class="sb-item-icon">📊</span> Dashboard</div>
+            <div class="sb-item active"><span class="sb-item-icon">🎯</span> Objectifs</div>
+            <div class="sb-item"><span class="sb-item-icon">📅</span> Calendrier</div>
+            <div class="sb-item"><span class="sb-item-icon">📈</span> Historique</div>
+            <div class="sb-item"><span class="sb-item-icon">⚙️</span> Paramètres</div>
+            <div class="sb-avatar">
+              <div class="sb-avatar-circle">PW</div>
+              <div>
+                <div class="sb-avatar-text">Poclaire Wamba</div>
+                <div class="sb-avatar-role">Geschäftsführer</div>
+              </div>
+            </div>
+          </div>
+          <div class="content-area">
+            <h4>Objectifs Avril 2026</h4>
+            <span class="size-tag normal">Content: ~530px wide</span>
+            <div class="mini-card" style="border-left-color:#10b981;"><div class="title">Recouvrement 36.850€</div><div class="minibar"><div class="fill" style="width:23%;background:#10b981;"></div></div></div>
+            <div class="mini-card" style="border-left-color:#2563eb;"><div class="title">100 Déclarations fiscales</div><div class="minibar"><div class="fill" style="width:18%;background:#2563eb;"></div></div></div>
+            <div class="mini-card" style="border-left-color:#8b5cf6;"><div class="title">Église 2x/mois</div><div class="minibar"><div class="fill" style="width:0%;background:#8b5cf6;"></div></div></div>
+            <div class="mini-card" style="border-left-color:#2563eb;"><div class="title">15 RDV/semaine (60/mois)</div><div class="minibar"><div class="fill" style="width:0%;background:#2563eb;"></div></div></div>
+            <div class="mini-card" style="border-left-color:#ec4899;"><div class="title">Santé Nael-Nathan</div><div class="minibar"><div class="fill" style="width:0%;background:#ec4899;"></div></div></div>
+          </div>
+        </div>
+      </div>
+      <!-- COLLAPSED -->
+      <div class="sidebar-state">
+        <div class="state-label collapsed">▶ COLLAPSED (56px) — Icons only, +110px content</div>
+        <div class="sidebar-flex">
+          <div class="sidebar-col">
+            <div class="sb-logo" style="font-size:18px;margin-bottom:8px;">W</div>
+            <div class="sb-divider"></div>
+            <div class="sb-item-col">📊</div>
+            <div class="sb-item-col active tooltip-demo">🎯<div class="tooltip">Objectifs</div></div>
+            <div class="sb-item-col">📅</div>
+            <div class="sb-item-col">📈</div>
+            <div class="sb-item-col">⚙️</div>
+            <div style="margin-top:auto;">
+              <div class="sb-avatar-circle" style="margin:0 auto;">PW</div>
+            </div>
+          </div>
+          <div class="content-area">
+            <h4>Objectifs Avril 2026</h4>
+            <span class="size-tag wide">Content: ~640px wide (+110px gained!) ✓</span>
+            <div class="mini-card" style="border-left-color:#10b981;"><div class="title">Recouvrement 36.850€</div><div class="minibar"><div class="fill" style="width:23%;background:#10b981;"></div></div></div>
+            <div class="mini-card" style="border-left-color:#2563eb;"><div class="title">100 Déclarations fiscales</div><div class="minibar"><div class="fill" style="width:18%;background:#2563eb;"></div></div></div>
+            <div class="mini-card" style="border-left-color:#8b5cf6;"><div class="title">Église 2x/mois</div><div class="minibar"><div class="fill" style="width:0%;background:#8b5cf6;"></div></div></div>
+            <div class="mini-card" style="border-left-color:#2563eb;"><div class="title">15 RDV/semaine (60/mois)</div><div class="minibar"><div class="fill" style="width:0%;background:#2563eb;"></div></div></div>
+            <div class="mini-card" style="border-left-color:#ec4899;"><div class="title">Santé Nael-Nathan</div><div class="minibar"><div class="fill" style="width:0%;background:#ec4899;"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;padding:20px;color:#475569;font-size:12px;">
+  WAMB'S Consulting Dashboard — Mockup Preview — Awaiting approval before implementation
+</div>
+
+</body>
+</html>
