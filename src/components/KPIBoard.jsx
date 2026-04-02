@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { fetchTodayKpis, fetchKpiTrend } from '../services/bigqueryApi';
 
 const initialKPIs = [
   { id: 1, label: 'Mandants actifs', value: 72, target: 100, format: 'number', trend: [65, 68, 70, 71, 72] },
@@ -14,6 +15,7 @@ const formatValue = (value, format) => {
     case 'currency': return `€${value.toLocaleString()}`;
     case 'hours': return `${value}h`;
     case 'rating': return `${value}/5`;
+    case 'percent': return `${value}%`;
     case 'days': return `${value}j`;
     default: return value;
   }
@@ -36,18 +38,47 @@ function MiniSparkline({ data, color, width = 80, height = 28 }) {
   );
 }
 
+const unitFormatMap = {
+  'EUR': 'currency', 'mandants': 'number', 'declarations': 'number',
+  'pct': 'percent', 'tasks': 'number', 'messages': 'number', 'objectifs': 'number',
+};
+
 function KPIBoard() {
-  const [kpis] = useState(initialKPIs);
+  const [kpis, setKpis] = useState(initialKPIs);
   const [view, setView] = useState('grid');
 
-  const overallScore = Math.round(
-    kpis.reduce((acc, k) => {
+  useEffect(() => {
+    Promise.all([fetchTodayKpis(), fetchKpiTrend(3)]).then(([todayKpis, trendData]) => {
+      if (todayKpis && todayKpis.length > 0) {
+        const liveKpis = todayKpis.map((k, i) => {
+          const trendValues = trendData
+            ? trendData.filter(t => t.kpi_name === k.kpi_name).map(t => t.avg_value).reverse()
+            : [];
+          if (trendValues.length > 0 && !trendValues.includes(k.kpi_value)) trendValues.push(k.kpi_value);
+          return {
+            id: i + 1,
+            label: k.kpi_name,
+            value: k.kpi_value,
+            target: k.pct_of_target ? Math.round(k.kpi_value / (k.pct_of_target / 100)) : 0,
+            format: unitFormatMap[k.unit] || 'number',
+            trend: trendValues.length >= 2 ? trendValues : [k.kpi_value * 0.8, k.kpi_value * 0.9, k.kpi_value],
+            inverse: k.kpi_name.includes('Délai') || k.kpi_name.includes('Inbox'),
+          };
+        });
+        setKpis(liveKpis);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const scorableKpis = kpis.filter(k => k.target > 0);
+  const overallScore = scorableKpis.length > 0 ? Math.round(
+    scorableKpis.reduce((acc, k) => {
       const pct = k.inverse
         ? Math.min((k.target / k.value) * 100, 100)
         : Math.min((k.value / k.target) * 100, 100);
-      return acc + pct;
-    }, 0) / kpis.length
-  );
+      return acc + (isNaN(pct) ? 0 : pct);
+    }, 0) / scorableKpis.length
+  ) : 0;
 
   return (
     <div style={styles.container}>
@@ -79,7 +110,7 @@ function KPIBoard() {
 
       <div style={view === 'grid' ? styles.grid : styles.list}>
         {kpis.map(kpi => {
-          const pct = kpi.inverse
+          const pct = kpi.target === 0 ? 0 : kpi.inverse
             ? Math.round(Math.min((kpi.target / kpi.value) * 100, 100))
             : Math.round(Math.min((kpi.value / kpi.target) * 100, 100));
           const color = pct >= 80 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444';

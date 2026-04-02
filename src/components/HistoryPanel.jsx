@@ -28,6 +28,191 @@ function ProgressBar({ value, max, color }) {
   );
 }
 
+function heatColor(rate) {
+  if (rate >= 85) return '#10b981';
+  if (rate >= 70) return '#34d399';
+  if (rate >= 50) return '#fbbf24';
+  if (rate >= 30) return '#f59e0b';
+  if (rate > 0) return '#ef4444';
+  return '#e2e8f0';
+}
+
+function HabitsHeatmap({ data }) {
+  if (!data || data.length === 0) return <p style={{ fontSize: 13, color: '#94a3b8' }}>Aucune donnee disponible</p>;
+
+  const habitNames = [...new Set(data.map(h => h.habit_name))];
+  const weeks = [...new Set(data.map(h => h.week_start))].sort();
+  const lastWeeks = weeks.slice(-4);
+
+  const lookup = {};
+  data.forEach(h => { lookup[`${h.habit_name}__${h.week_start}`] = h.completion_rate; });
+
+  const cellSize = 44;
+  const labelWidth = 160;
+  const headerHeight = 40;
+  const rowHeight = cellSize + 4;
+  const svgWidth = labelWidth + lastWeeks.length * (cellSize + 6) + 20;
+  const svgHeight = headerHeight + habitNames.length * rowHeight + 10;
+
+  const formatWeek = (ws) => {
+    const d = new Date(ws);
+    return `${d.getDate()}/${d.getMonth() + 1}`;
+  };
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <svg width={svgWidth} height={svgHeight} style={{ display: 'block' }}>
+        {/* Column headers (week labels) */}
+        {lastWeeks.map((w, ci) => (
+          <text key={w} x={labelWidth + ci * (cellSize + 6) + cellSize / 2} y={24}
+            textAnchor="middle" fontSize="11" fill="#64748b" fontFamily="Inter, sans-serif">
+            Sem. {formatWeek(w)}
+          </text>
+        ))}
+        {/* Rows */}
+        {habitNames.map((name, ri) => (
+          <g key={name}>
+            {/* Habit label */}
+            <text x={4} y={headerHeight + ri * rowHeight + cellSize / 2 + 4}
+              fontSize="12" fill="#1e293b" fontFamily="Inter, sans-serif" dominantBaseline="middle">
+              {name.length > 22 ? name.slice(0, 20) + '...' : name}
+            </text>
+            {/* Cells */}
+            {lastWeeks.map((w, ci) => {
+              const rate = lookup[`${name}__${w}`] ?? 0;
+              return (
+                <g key={`${name}-${w}`}>
+                  <rect
+                    x={labelWidth + ci * (cellSize + 6)}
+                    y={headerHeight + ri * rowHeight}
+                    width={cellSize} height={cellSize} rx={6}
+                    fill={heatColor(rate)} opacity={0.85}
+                  />
+                  <text
+                    x={labelWidth + ci * (cellSize + 6) + cellSize / 2}
+                    y={headerHeight + ri * rowHeight + cellSize / 2 + 1}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fontSize="11" fontWeight="600" fill="#fff" fontFamily="Inter, sans-serif">
+                    {Math.round(rate)}%
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+        ))}
+      </svg>
+      <div style={{ display: 'flex', gap: 12, marginTop: 10, alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: '#94a3b8' }}>Legende:</span>
+        {[
+          { label: '85%+', color: '#10b981' },
+          { label: '70-84%', color: '#34d399' },
+          { label: '50-69%', color: '#fbbf24' },
+          { label: '30-49%', color: '#f59e0b' },
+          { label: '<30%', color: '#ef4444' },
+        ].map(l => (
+          <span key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#64748b' }}>
+            <span style={{ width: 12, height: 12, borderRadius: 3, background: l.color, display: 'inline-block' }} />
+            {l.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProductivityBarChart({ data }) {
+  if (!data || data.length === 0) return <p style={{ fontSize: 13, color: '#94a3b8' }}>Aucune donnee disponible</p>;
+
+  const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date)).slice(-7);
+  const maxDeepWork = Math.max(...sorted.map(d => d.deep_work_min), 1);
+
+  const chartW = 560;
+  const chartH = 200;
+  const padLeft = 40;
+  const padBottom = 50;
+  const padTop = 20;
+  const barGroupWidth = (chartW - padLeft - 20) / sorted.length;
+  const barWidth = barGroupWidth * 0.32;
+  const drawH = chartH - padTop - padBottom;
+
+  const formatDay = (dateStr) => {
+    const d = new Date(dateStr);
+    const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    return days[d.getDay()];
+  };
+
+  // Y-axis gridlines for habit_rate (0-100%)
+  const yTicks = [0, 25, 50, 75, 100];
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <svg width={chartW} height={chartH} style={{ display: 'block' }}>
+        {/* Y-axis gridlines + labels */}
+        {yTicks.map(tick => {
+          const y = padTop + drawH - (tick / 100) * drawH;
+          return (
+            <g key={tick}>
+              <line x1={padLeft} y1={y} x2={chartW - 10} y2={y} stroke="#e2e8f0" strokeWidth="1" />
+              <text x={padLeft - 6} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8" fontFamily="Inter, sans-serif">
+                {tick}%
+              </text>
+            </g>
+          );
+        })}
+        {/* Bars */}
+        {sorted.map((d, i) => {
+          const x = padLeft + i * barGroupWidth + barGroupWidth * 0.12;
+          const habitH = (d.habit_rate / 100) * drawH;
+          const deepH = (d.deep_work_min / maxDeepWork) * drawH * 0.8;
+          return (
+            <g key={d.date}>
+              {/* Habit rate bar */}
+              <rect x={x} y={padTop + drawH - habitH} width={barWidth} height={habitH}
+                rx={3} fill="#2563eb" opacity={0.85} />
+              {/* Deep work bar */}
+              <rect x={x + barWidth + 3} y={padTop + drawH - deepH} width={barWidth} height={deepH}
+                rx={3} fill="#10b981" opacity={0.75} />
+              {/* Habit rate label on top */}
+              {d.habit_rate > 0 && (
+                <text x={x + barWidth / 2} y={padTop + drawH - habitH - 5}
+                  textAnchor="middle" fontSize="10" fontWeight="600" fill="#2563eb" fontFamily="Inter, sans-serif">
+                  {Math.round(d.habit_rate)}%
+                </text>
+              )}
+              {/* Deep work label on top */}
+              {d.deep_work_min > 0 && (
+                <text x={x + barWidth + 3 + barWidth / 2} y={padTop + drawH - deepH - 5}
+                  textAnchor="middle" fontSize="9" fontWeight="600" fill="#10b981" fontFamily="Inter, sans-serif">
+                  {d.deep_work_min}m
+                </text>
+              )}
+              {/* X-axis labels */}
+              <text x={x + barWidth + 1} y={chartH - padBottom + 16}
+                textAnchor="middle" fontSize="11" fill="#64748b" fontFamily="Inter, sans-serif">
+                {formatDay(d.date)}
+              </text>
+              <text x={x + barWidth + 1} y={chartH - padBottom + 30}
+                textAnchor="middle" fontSize="9" fill="#94a3b8" fontFamily="Inter, sans-serif">
+                {d.date.slice(5)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      <div style={{ display: 'flex', gap: 20, marginTop: 8, alignItems: 'center' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#64748b' }}>
+          <span style={{ width: 12, height: 12, borderRadius: 3, background: '#2563eb', display: 'inline-block' }} />
+          Taux habitudes (%)
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#64748b' }}>
+          <span style={{ width: 12, height: 12, borderRadius: 3, background: '#10b981', display: 'inline-block' }} />
+          Deep Work (min, echelle relative)
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function HistoryPanel() {
   const [habits, setHabits] = useState([]);
   const [kpis, setKpis] = useState([]);
@@ -191,7 +376,21 @@ function HistoryPanel() {
       {activeTab === 'productivity' && (
         <div style={styles.section}>
           <h3 style={styles.sectionTitle}>Productivite quotidienne (v_daily_productivity)</h3>
-          <div style={styles.prodTable}>
+
+          {/* --- Bar Chart: 7-day productivity --- */}
+          <div style={styles.chartCard}>
+            <h4 style={styles.chartTitle}>Taux d'habitudes & Deep Work (7 derniers jours)</h4>
+            <ProductivityBarChart data={productivity} />
+          </div>
+
+          {/* --- Heatmap: 4-week habits completion --- */}
+          <div style={{ ...styles.chartCard, marginTop: 20 }}>
+            <h4 style={styles.chartTitle}>Heatmap de completion des habitudes (4 semaines)</h4>
+            <HabitsHeatmap data={habits} />
+          </div>
+
+          {/* --- Data table --- */}
+          <div style={{ ...styles.prodTable, marginTop: 20 }}>
             <div style={styles.prodHeader}>
               <span style={{ ...styles.prodCell, fontWeight: 600 }}>Date</span>
               <span style={{ ...styles.prodCell, fontWeight: 600 }}>Habitudes</span>
@@ -276,6 +475,9 @@ const styles = {
   prodCell: { flex: 1, fontSize: 13, color: '#1e293b', padding: '0 14px' },
   prodSummary: { marginTop: 16, display: 'flex', alignItems: 'center', gap: 16 },
   prodLabel: { fontSize: 12, color: '#64748b' },
+  // Chart cards
+  chartCard: { padding: 20, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0' },
+  chartTitle: { fontSize: 14, fontWeight: 600, color: '#1e293b', margin: '0 0 14px' },
   // Progress bar
   progressBg: { height: 4, background: '#e2e8f0', borderRadius: 2, marginTop: 6 },
   progressFill: { height: 4, borderRadius: 2, transition: 'width 0.3s' },

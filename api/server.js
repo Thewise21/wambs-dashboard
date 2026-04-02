@@ -14,14 +14,23 @@ const bigquery = new BigQuery({ projectId: PROJECT_ID });
 // CORS configuration
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PATCH'],
 }));
 app.use(express.json());
 
-// Helper: run a BigQuery query
+// Helper: flatten BigQuery DATE/TIMESTAMP objects { value: "..." } to plain strings
+function flattenRow(row) {
+  const flat = {};
+  for (const [key, val] of Object.entries(row)) {
+    flat[key] = val && typeof val === 'object' && 'value' in val ? val.value : val;
+  }
+  return flat;
+}
+
+// Helper: run a BigQuery query and flatten results
 async function runQuery(sql) {
   const [rows] = await bigquery.query({ query: sql, location: 'EU' });
-  return rows;
+  return rows.map(flattenRow);
 }
 
 // ─── Health check ───
@@ -110,6 +119,78 @@ app.get('/api/alerts', async (req, res) => {
   }
 });
 
+// ─── Today's habits (for DailySystem) ───
+app.get('/api/today-habits', async (req, res) => {
+  try {
+    const sql = `
+      SELECT habit_id, habit_name, icon,
+        LOGICAL_OR(completed) as completed,
+        MAX(streak) as streak
+      FROM \`${PROJECT_ID}.${DATASET}.daily_habits_log\`
+      WHERE date = CURRENT_DATE()
+      GROUP BY habit_id, habit_name, icon
+      ORDER BY habit_id
+    `;
+    const rows = await runQuery(sql);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching today habits:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Toggle a habit ───
+app.patch('/api/habits/:habitId', async (req, res) => {
+  try {
+    const habitId = parseInt(req.params.habitId);
+    const { completed } = req.body;
+    const sql = `
+      UPDATE \`${PROJECT_ID}.${DATASET}.daily_habits_log\`
+      SET completed = ${completed}
+      WHERE date = CURRENT_DATE() AND habit_id = ${habitId}
+    `;
+    await runQuery(sql);
+    res.json({ success: true, habit_id: habitId, completed });
+  } catch (err) {
+    console.error('Error toggling habit:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Today's KPIs (for KPIBoard) ───
+app.get('/api/today-kpis', async (req, res) => {
+  try {
+    const sql = `
+      SELECT kpi_name, kpi_value, unit, pct_of_target, alert_status
+      FROM \`${PROJECT_ID}.${DATASET}.v_kpi_alerts\`
+      ORDER BY kpi_name
+    `;
+    const rows = await runQuery(sql);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching today KPIs:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Update objective progress ───
+app.patch('/api/objectives/:objectiveId', async (req, res) => {
+  try {
+    const objectiveId = parseInt(req.params.objectiveId);
+    const { current_value, status } = req.body;
+    const sql = `
+      UPDATE \`${PROJECT_ID}.${DATASET}.objectives\`
+      SET current_value = ${current_value}, status = '${status}', updated_at = CURRENT_TIMESTAMP()
+      WHERE objective_id = ${objectiveId}
+    `;
+    await runQuery(sql);
+    res.json({ success: true, objective_id: objectiveId, current_value, status });
+  } catch (err) {
+    console.error('Error updating objective:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Submit daily snapshot ───
 app.post('/api/snapshot', async (req, res) => {
   try {
@@ -150,6 +231,49 @@ app.post('/api/snapshot', async (req, res) => {
   }
 });
 
+// ─── Critical alerts (for n8n email notifications) ───
+app.get('/api/alerts/critical', async (req, res) => {
+  try {
+    const threshold = parseInt(req.query.threshold) || 50; // default: alert if < 50% of target
+    const sql = `
+      SELECT kpi_name, kpi_value, pct_of_target, alert_status, unit
+      FROM \`${PROJECT_ID}.${DATASET}.v_kpi_alerts\`
+      WHERE (pct_of_target IS NOT NULL AND pct_of_target < ${threshold})
+         OR alert_status LIKE 'WARNING%'
+         OR alert_status LIKE 'ALERT%'
+      ORDER BY COALESCE(pct_of_target, 0) ASC
+    `;
+    const rows = await runQuery(sql);
+
+    // Build email-ready summary
+    const summary = rows.map(r => ({
+      ...r,
+      message: `${r.kpi_name}: ${r.kpi_value} ${r.unit} (${r.pct_of_target != null ? r.pct_of_target + '% de l\'objectif' : 'pas d\'objectif'}) — ${r.alert_status}`,
+    }));
+
+    const hasAlerts = rows.length > 0;
+    const emailSubject = hasAlerts
+      ? `⚠️ WAMBS Dashboard: ${rows.length} KPI${rows.length > 1 ? 's' : ''} sous le seuil (${threshold}%)`
+      : `✅ WAMBS Dashboard: Tous les KPIs OK`;
+    const emailBody = hasAlerts
+      ? `Alertes KPI du ${new Date().toLocaleDateString('fr-FR')}:\n\n${summary.map(s => `• ${s.message}`).join('\n')}\n\n—\nDashboard: https://thewise21.github.io/wambs-dashboard/`
+      : `Aucune alerte. Tous les KPIs sont au-dessus de ${threshold}% de l'objectif.`;
+
+    res.json({
+      has_alerts: hasAlerts,
+      count: rows.length,
+      threshold,
+      email_subject: emailSubject,
+      email_body: emailBody,
+      alerts: summary,
+      checked_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('Error fetching critical alerts:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Raw SQL query (admin only, for debugging) ───
 app.post('/api/query', async (req, res) => {
   try {
@@ -170,5 +294,5 @@ app.post('/api/query', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`WAMBS Dashboard API running on port ${PORT}`);
   console.log(`Project: ${PROJECT_ID} | Dataset: ${DATASET}`);
-  console.log(`Endpoints: /api/health, /api/habits, /api/kpi-trend, /api/objectives, /api/productivity, /api/alerts, /api/snapshot`);
+  console.log(`Endpoints: /api/health, /api/habits, /api/kpi-trend, /api/objectives, /api/productivity, /api/alerts, /api/alerts/critical, /api/snapshot`);
 });

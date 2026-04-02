@@ -87,6 +87,19 @@ export async function fetchObjectivesProgress() {
   return data || [];
 }
 
+export async function updateObjective(objectiveId, currentValue, status) {
+  if (CONFIG.USE_MOCK) {
+    console.log('[Mock] Update objective:', objectiveId, currentValue, status);
+    return { success: true, mock: true };
+  }
+  const res = await fetch(`${CONFIG.API_BASE_URL}/objectives/${objectiveId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ current_value: currentValue, status }),
+  });
+  return res.json();
+}
+
 export async function fetchDailyProductivity(days = 30) {
   const data = await apiFetch(`/productivity?days=${days}`);
   return data || MOCK.productivity;
@@ -95,6 +108,29 @@ export async function fetchDailyProductivity(days = 30) {
 export async function fetchAlerts() {
   const data = await apiFetch('/alerts');
   return data || MOCK.alerts;
+}
+
+export async function fetchTodayHabits() {
+  const data = await apiFetch('/today-habits');
+  return data || [];
+}
+
+export async function toggleHabitApi(habitId, completed) {
+  if (CONFIG.USE_MOCK) {
+    console.log('[Mock] Toggle habit:', habitId, completed);
+    return { success: true, mock: true };
+  }
+  const res = await fetch(`${CONFIG.API_BASE_URL}/habits/${habitId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ completed }),
+  });
+  return res.json();
+}
+
+export async function fetchTodayKpis() {
+  const data = await apiFetch('/today-kpis');
+  return data || [];
 }
 
 export async function submitDailySnapshot(snapshotData) {

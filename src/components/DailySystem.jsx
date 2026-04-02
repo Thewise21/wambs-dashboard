@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { fetchTodayHabits, toggleHabitApi } from '../services/bigqueryApi';
 
 const defaultHabits = [
   { id: 1, name: 'Morning Routine (6h)', icon: '☀️', done: false, streak: 12 },
@@ -8,6 +9,8 @@ const defaultHabits = [
   { id: 5, name: 'Lecture (30 min)', icon: '📖', done: false, streak: 15 },
   { id: 6, name: 'Revue du soir', icon: '🌙', done: false, streak: 10 },
 ];
+
+const iconMap = { sun: '☀️', target: '🎯', email: '📧', muscle: '💪', book: '📖', moon: '🌙' };
 
 const timeBlocks = [
   { time: '03:30', task: 'Morning Routine — Réveil & Préparation', type: 'routine', duration: 45 },
@@ -37,11 +40,32 @@ const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 function DailySystem() {
   const [habits, setHabits] = useState(defaultHabits);
   const [note, setNote] = useState('');
+  // synced state removed (unused)
+
+  useEffect(() => {
+    fetchTodayHabits().then(rows => {
+      if (rows && rows.length > 0) {
+        const mapped = rows.map(r => ({
+          id: r.habit_id,
+          name: r.habit_name,
+          icon: iconMap[r.icon] || r.icon,
+          done: r.completed,
+          streak: r.streak || 0,
+        }));
+        setHabits(mapped);
+      }
+    }).catch(() => {});
+  }, []);
 
   const toggleHabit = (id) => {
-    setHabits(habits.map(h =>
-      h.id === id ? { ...h, done: !h.done } : h
-    ));
+    setHabits(prev => prev.map(h => {
+      if (h.id === id) {
+        const newDone = !h.done;
+        toggleHabitApi(id, newDone).catch(() => {});
+        return { ...h, done: newDone };
+      }
+      return h;
+    }));
   };
 
   const completedCount = habits.filter(h => h.done).length;

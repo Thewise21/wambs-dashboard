@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { fetchObjectivesProgress, updateObjective } from '../services/bigqueryApi';
 
 const statuses = ['Non démarré', 'En cours', 'Avancé', 'Terminé'];
 const statusColors = {
@@ -9,142 +10,152 @@ const statusColors = {
 };
 
 const categoryColors = {
-  Production: '#2563eb',
-  Finance: '#10b981',
-  Commercial: '#f59e0b',
-  Organisation: '#8b5cf6',
-  Stratégie: '#ec4899',
-  Formation: '#06b6d4',
+  Familiale: '#ec4899',
+  Sociale: '#8b5cf6',
+  Professionnel: '#2563eb',
+  Financier: '#10b981',
 };
 
 const initialGoals = [
-  { id: 1, title: '50 Déclarations fiscales', target: 50, current: 18, unit: 'déclarations', category: 'Production', status: 'En cours',
+  // ── Familiale ──
+  { id: 1, title: 'Santé Nael-Nathan + Rendez-vous', target: 100, current: 0, unit: '%', category: 'Familiale', status: 'Non démarré',
     subtasks: [
-      { text: 'Top Mandanten: Patrick Pokam (PAG), Yaqoob (Technotio), Sanuel Opoku, Suneyka, Oneyka, Signature Essential (Valdo), Yannick Noudou, Michael, Drehmoment, Romial Tumma, Lenda Andre (La Services), Elborne, Etienne (Germany Afrika Shipping), Jesse Johnson', done: false },
-      { text: 'ESt 2023 Nachträge (Steuerjahr 2018-2020)', done: false },
-      { text: 'ELSTER Entwürfe prüfen + Bescheide erstellen', done: false },
-      { text: 'Dropbox Steuererklärung scannen/signieren', done: false },
-      { text: 'USt-Vor. für 12 Mandanten (Lenda, Alisa Saric, Etienne, Clifford, WAMBS, Franck Jongo, Bruno, Patrick, Bernard, Simplice, Elvice, Kuwan)', done: false },
-      { text: 'Einspruch Mariam Yaqoob 2023', done: false },
+      { text: 'RDV médecin Nael-Nathan', done: false },
+      { text: 'Suivi santé régulier', done: false },
     ]},
-  { id: 2, title: '30 Comptabilités', target: 30, current: 9, unit: 'comptabilités', category: 'Production', status: 'En cours',
+  { id: 2, title: 'Steuererklärungen Privat (Poclaire + Familie)', target: 100, current: 0, unit: '%', category: 'Familiale', status: 'Non démarré',
     subtasks: [
-      { text: 'Buchhaltung ESt 2023 Fälle', done: false },
-      { text: 'Abrechnung 2024+2025 Studenten', done: false },
+      { text: 'ESt Poclaire 2024+2025', done: false },
+      { text: 'ESt Familie abschließen', done: false },
+    ]},
+
+  // ── Sociale ──
+  { id: 3, title: 'Église 2x/mois', target: 8, current: 0, unit: 'visites', category: 'Sociale', status: 'Non démarré',
+    subtasks: [
+      { text: 'Planifier les dimanches', done: false },
+    ]},
+  { id: 4, title: 'ARTS + NKeng (3h/semaine)', target: 12, current: 0, unit: 'heures', category: 'Sociale', status: 'Non démarré',
+    subtasks: [
+      { text: 'ARTS: réunions mensuelles', done: false },
+      { text: 'NKeng e.V.: tâches associatives', done: false },
+    ]},
+
+  // ── Professionnel ──
+  { id: 5, title: '15 RDV/semaine (60/mois)', target: 60, current: 0, unit: 'RDV', category: 'Professionnel', status: 'Non démarré',
+    subtasks: [
+      { text: 'Semaine 1: 15 RDV', done: false },
+      { text: 'Semaine 2: 15 RDV', done: false },
+      { text: 'Semaine 3: 15 RDV', done: false },
+      { text: 'Semaine 4: 15 RDV', done: false },
+    ]},
+  { id: 6, title: '100 Déclarations fiscales', target: 100, current: 0, unit: 'déclarations', category: 'Professionnel', status: 'Non démarré',
+    subtasks: [
+      { text: 'ESt 2024 batch (top mandants)', done: false },
+      { text: 'ESt 2023 Nachträge', done: false },
+      { text: 'ELSTER Entwürfe prüfen + übermitteln', done: false },
+    ]},
+  { id: 7, title: 'Business Plan WAMBS + P.A.G Services', target: 100, current: 0, unit: '%', category: 'Professionnel', status: 'Non démarré',
+    subtasks: [
+      { text: 'Business Plan für Banken/Investoren', done: false },
+      { text: 'P.A.G Services Konzept finalisieren', done: false },
+    ]},
+  { id: 8, title: '50 Comptabilités', target: 50, current: 0, unit: 'comptabilités', category: 'Professionnel', status: 'Non démarré',
+    subtasks: [
       { text: 'FiBu 2023-2025 alle Mandanten', done: false },
-      { text: 'USt-VA 2020-2026 prüfen', done: false },
-      { text: 'EÜR 2024 Arnauld Dassie (Lucio Vermietung) übermitteln', done: false },
-      { text: 'WAMBS Consulting: AR+ER+Bank (Revolut, Wise, Tomorrow, M-Pesa, Krypto)', done: false },
-      { text: 'Doppelbuchhaltung Workflow erstellen', done: false },
+      { text: 'USt-VA Rückstände aufarbeiten', done: false },
+      { text: 'EÜR 2024 fertigstellen', done: false },
     ]},
-  { id: 3, title: '30 Beratungsgespräche', target: 30, current: 11, unit: 'entretiens', category: 'Commercial', status: 'En cours',
+  { id: 9, title: 'Coordination Team (Fikret, Laura, Leonel)', target: 100, current: 0, unit: '%', category: 'Professionnel', status: 'Non démarré',
     subtasks: [
-      { text: '9 RDV Calendly planifiés (18-31 mars)', done: false },
-      { text: 'Passer 10 appels prospection', done: false },
-      { text: 'Beratungsterminplan 2026 erstellen', done: false },
-      { text: 'Beratungsgespräch Patrick Pokam/P.A.G vorbereiten', done: false },
+      { text: 'Fikret: Sachbearbeiter Aufgaben verteilen', done: false },
+      { text: 'Laura: Assistenz-Kommunikation', done: false },
+      { text: 'Leonel: n8n Workflows + Sachbearbeitung', done: false },
     ]},
-  { id: 4, title: 'Finaliser process automatisation', target: 100, current: 40, unit: '%', category: 'Organisation', status: 'En cours',
+  { id: 10, title: 'Plan Reise April', target: 100, current: 0, unit: '%', category: 'Professionnel', status: 'Non démarré',
     subtasks: [
-      { text: 'N8N Workflow: Zoom→G-Drive→Plaud→Perplexity→Claude→ChatGPT→BigQuery', done: false },
-      { text: 'Workflow Monthly Accounting, Lohnabrechnungen, USt-VA Monthly Bills', done: false },
-      { text: 'Workflow Profi DAVG Analyse für jeden Mandanten', done: false },
-      { text: 'Pipeline ESt Neue Mandant (8 Schritte)', done: false },
-      { text: 'OCR Tecerat in N8N', done: false },
-      { text: 'Extract ELSTER Zertifikate → Dropbox Kanzlei_Elster', done: false },
+      { text: 'Reiseplan April erstellen', done: false },
+      { text: 'Mandantenbesuche planen', done: false },
     ]},
-  { id: 5, title: 'Paiements ouverts', target: 100, current: 25, unit: '%', category: 'Finance', status: 'En cours',
+  { id: 11, title: 'Formation Johanna (Schülerin)', target: 100, current: 0, unit: '%', category: 'Professionnel', status: 'Non démarré',
     subtasks: [
-      { text: 'URGENT: Hefny Zahlung klären', done: false },
-      { text: 'URGENT: Esmail Zahlung klären 2.267,84€', done: false },
-      { text: 'Hugues Zahlung klären 900€', done: false },
-      { text: 'Ola Zahlung klären 3.281€', done: false },
-      { text: 'Emraz Hosen 500€ Anzahlung prüfen', done: false },
-      { text: 'Rejin: Zahlungsvereinbarung Hälfte bis 31.03.26', done: false },
-      { text: 'Kevin Des Roses: Monatlich 300€ ab 01.03.2026', done: false },
+      { text: 'Einarbeitung Sachbearbeiterin', done: false },
+      { text: 'ELSTER + TaxDome Schulung', done: false },
     ]},
-  { id: 6, title: '5 RDV Les Bâtisseurs', target: 5, current: 1, unit: 'RDV', category: 'Commercial', status: 'En cours',
+  { id: 12, title: 'Simulateur Fiscal en ligne', target: 100, current: 0, unit: '%', category: 'Professionnel', status: 'Non démarré',
     subtasks: [
-      { text: 'Follow-Up 20.03 (Calendly planifié)', done: false },
-      { text: 'Contact Jeannick Engille (Dir. Technique)', done: true },
-      { text: 'Contact Ebrissone Edmond (Chef Projet TelKom)', done: true },
-      { text: 'Contact Stancey Obiang (Expert Impôt)', done: true },
-      { text: 'Message à tous les Bâtisseurs', done: false },
+      { text: 'Deployment GitHub Pages', done: false },
+      { text: 'Tests + corrections', done: false },
     ]},
-  { id: 7, title: 'Contact FA dossiers ouverts', target: 100, current: 30, unit: '%', category: 'Production', status: 'En cours',
+  { id: 13, title: 'TaxDome Konfiguration komplett', target: 100, current: 0, unit: '%', category: 'Professionnel', status: 'Non démarré',
     subtasks: [
-      { text: 'Elvis Kameni: Stand ESt 2023 beim FA anfragen', done: false },
-      { text: 'Eric Constant: Einspruch 2024 ESt (Ablehnung Zusammenveranlagung)', done: false },
-      { text: 'Kevin Des Roses: Einspruch 2023 DRINGEND', done: false },
-      { text: 'Alle FA Unterlagen/Analyse + Klärungsplan erstellen', done: false },
-      { text: 'Judicael Fall prüfen', done: false },
+      { text: 'Pipelines finalisieren', done: false },
+      { text: 'Inbox 771 messages traiter', done: false },
+      { text: 'Automations n8n connecter', done: false },
     ]},
-  { id: 8, title: 'Marketing Plan', target: 100, current: 10, unit: '%', category: 'Stratégie', status: 'Non démarré',
+  { id: 14, title: 'Plan de travail Team complet', target: 100, current: 0, unit: '%', category: 'Professionnel', status: 'Non démarré',
     subtasks: [
-      { text: 'Business Plan PAG für Banken/Investoren (Abercane) erstellen', done: false },
-      { text: 'IMPACT-Formel Präsentation über mich erstellen', done: false },
-      { text: 'Meine Fähigkeiten konkret beschreiben (Profil)', done: false },
-      { text: 'Gettaxed App Projekt (1h/jour)', done: false },
+      { text: 'Rollen + Verträge definieren', done: false },
+      { text: 'Wochenplan pro Mitarbeiter', done: false },
     ]},
-  { id: 9, title: 'Organisation fichiers', target: 100, current: 20, unit: '%', category: 'Organisation', status: 'En cours',
+  { id: 15, title: 'RDV Lenine (DK-Multiservices)', target: 100, current: 0, unit: '%', category: 'Professionnel', status: 'Non démarré',
     subtasks: [
-      { text: 'Chinedu: Dropbox Folder Privat/Unternehmer scannen+klassifizieren', done: false },
-      { text: 'Elvis Kameni: Dropbox Folder prüfen/scannen/organisieren', done: false },
-      { text: 'Alisa Saric: Unterlagen 2019-2026 von Apple in Dropbox', done: false },
-      { text: 'WAMBS: Invoice to Go + Belege hochladen + Analyse', done: false },
+      { text: 'Termin vereinbaren', done: false },
+      { text: 'Angebot vorbereiten', done: false },
     ]},
-  { id: 10, title: 'Organiser programmes', target: 100, current: 15, unit: '%', category: 'Organisation', status: 'Non démarré',
+
+  // ── Financier ──
+  { id: 16, title: 'Recouvrement 36.850€', target: 36850, current: 0, unit: '€', category: 'Financier', status: 'Non démarré',
     subtasks: [
-      { text: 'Organisation Meeting WAMBS 2026', done: false },
-      { text: 'Ausbildungsplan 2026 erstellen', done: false },
-      { text: 'Beratungsterminplan für 2026 erstellen', done: false },
+      { text: 'Yaqoob (Technotio) — 3.000€', done: false },
+      { text: 'Hefny — 1.500€', done: false },
+      { text: 'Salomov — 500€', done: false },
+      { text: 'Rejin — 2.500€', done: false },
+      { text: 'Kevin Des Roses — 2.500€', done: false },
+      { text: 'Ola — 3.281€', done: false },
+      { text: 'Esmail — 2.268€', done: false },
+      { text: 'Hugues — 900€', done: false },
+      { text: 'Emraz Hosen — 500€', done: false },
+      { text: 'Patrick Pokam (P.A.G Services) — 5.000€', done: false },
+      { text: 'Etienne Jeatoa (Germany Afrika Shipping) — 1.500€', done: false },
+      { text: 'Credo — 800€', done: false },
+      { text: 'Kuwan — 600€', done: false },
+      { text: 'Varinder — 1.200€', done: false },
+      { text: 'Romial Tumma — 750€', done: false },
+      { text: 'Lenda Andre (La Services) — 1.000€', done: false },
+      { text: 'Yannick Noudou — 500€', done: false },
+      { text: 'Salif — 1.200€', done: false },
+      { text: 'Samuel Opoku — 800€', done: false },
+      { text: 'Suneyka — 600€', done: false },
+      { text: 'Cleanset — 1.500€', done: false },
+      { text: 'Linh + LUU — 2.000€', done: false },
+      { text: 'Elborne — 650€', done: false },
+      { text: 'Jesse Johnson — 1.500€', done: false },
     ]},
-  { id: 11, title: 'Plan de travail Team', target: 100, current: 35, unit: '%', category: 'Stratégie', status: 'En cours',
+  { id: 17, title: 'Comptes bancaires en ordre', target: 100, current: 0, unit: '%', category: 'Financier', status: 'Non démarré',
     subtasks: [
-      { text: 'Einrichtung, Organisation, Rolle, Verträge aller WAMBS+Müller Team', done: false },
-      { text: 'Fikret: Sachbearbeiter', done: false },
-      { text: 'Laura: Assistentin', done: false },
-      { text: 'Leonel: Werkstudent (Sachbearbeiter)', done: false },
-      { text: 'Johanna: Schülerin 16J (Sachbearbeiterin)', done: false },
-      { text: 'Caroline: Elternzeit', done: false },
-      { text: 'Leonel/Fikret: Mandantenprüfungen + ELSTER Bewertungen ergänzen', done: false },
+      { text: 'Revolut, Wise, Tomorrow prüfen', done: false },
+      { text: 'M-Pesa, Krypto abgleichen', done: false },
     ]},
-  { id: 12, title: 'Partenariat CEF', target: 100, current: 10, unit: '%', category: 'Commercial', status: 'Non démarré',
+  { id: 18, title: 'Facturation 15.000€', target: 15000, current: 0, unit: '€', category: 'Financier', status: 'Non démarré',
     subtasks: [
-      { text: 'Projekt Linh+Luu: Partnerschaftsvertrag (mind. 5 Jahre, Bonus-Modell)', done: false },
-      { text: 'Projekt Linh+Luu: Büromaterialien + EDV + KI Tools auflisten', done: false },
-      { text: 'Patrick Pokam: Partnerschafts-Vertrag mit WAMBS klären', done: false },
+      { text: '5 factures/jour erstellen', done: false },
+      { text: 'Alle offenen Rechnungen versenden', done: false },
     ]},
-  { id: 13, title: 'Toutes les factures', target: 100, current: 50, unit: '%', category: 'Finance', status: 'En cours',
+  { id: 19, title: '20 Nouveaux mandants', target: 20, current: 0, unit: 'mandants', category: 'Financier', status: 'Non démarré',
     subtasks: [
-      { text: 'Rechnungen+Versand prüfen', done: false },
-      { text: 'Contrôler 10 factures/jour', done: false },
-      { text: 'Salif: Rechnungen 2024+2025 erstellen und schicken', done: false },
-      { text: 'Alle Emails für WAMBS+Poclaire Rechnungen prüfen', done: false },
-      { text: "J'établis 5 factures/jour", done: false },
+      { text: 'Prospection téléphonique', done: false },
+      { text: 'Les Bâtisseurs contacts', done: false },
+      { text: 'Partenariat CEF (Linh+LUU)', done: false },
     ]},
-  { id: 14, title: 'Revenus 50 000€', target: 50000, current: 22000, unit: '€', category: 'Finance', status: 'En cours',
+  { id: 20, title: '60 RDV Beratung im April', target: 60, current: 0, unit: 'RDV', category: 'Financier', status: 'Non démarré',
     subtasks: [
-      { text: 'Salomov: Rechnung ESt 2024 erstellen + schicken', done: false },
-      { text: 'Rejin: Abtretungserklärung 2024+2025', done: false },
-      { text: 'Kevin Des Roses: Abtretungserklärungen 2024-2025', done: false },
-      { text: 'Eric Constant: Angebot ESt+Buchhaltung+EÜR 2025', done: false },
-    ]},
-  { id: 15, title: 'Recouvrement 30 000€', target: 30000, current: 8500, unit: '€', category: 'Finance', status: 'En cours',
-    subtasks: [
-      { text: 'Offene Rechnungen 2017-heute (Patrick Pokam) klären', done: false },
-      { text: 'Rejin: Zahlungsvereinbarung Hälfte bis 31.03.26, ab 01.05 300€', done: false },
-      { text: 'Kevin Des Roses: Monatlich 300€ ab 01.03.2026', done: false },
-      { text: 'Salomov: Zahlungsvereinbarung klären und folgen', done: false },
-      { text: 'Emraz Hosen: 500€ Anzahlung + Gesamtfall Analyse', done: false },
-    ]},
-  { id: 16, title: 'Plan étude Steuerberatungsprüfung', target: 100, current: 5, unit: '%', category: 'Formation', status: 'Non démarré',
-    subtasks: [
-      { text: 'Ausbildungsplan 2026 erstellen', done: false },
-      { text: 'Reiseplan 2026 erstellen', done: false },
-      { text: 'Lire au moins 1h par jour', done: false },
+      { text: 'Calendly planifier', done: false },
+      { text: '15 RDV/semaine maintenir', done: false },
     ]},
 ];
+
+const MONTHS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+const CURRENT_MONTH = 3; // April (0-indexed)
 
 function GoalTracker() {
   const [goals, setGoals] = useState(initialGoals);
@@ -152,7 +163,29 @@ function GoalTracker() {
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [newGoal, setNewGoal] = useState({ title: '', target: '', current: '0', unit: '', category: 'Production', status: 'Non démarré' });
+  const [selectedMonth, setSelectedMonth] = useState(CURRENT_MONTH);
+  const [newGoal, setNewGoal] = useState({ title: '', target: '', current: '0', unit: '', category: 'Professionnel', status: 'Non démarré' });
+
+  useEffect(() => {
+    fetchObjectivesProgress().then(data => {
+      if (data && data.length > 0) {
+        const liveGoals = data.map(obj => {
+          const local = initialGoals.find(g => g.id === obj.objective_id);
+          return {
+            id: obj.objective_id,
+            title: obj.objective_name,
+            target: obj.target,
+            current: obj.current_value,
+            unit: obj.unit,
+            category: obj.category,
+            status: obj.status,
+            subtasks: local ? local.subtasks : [],
+          };
+        });
+        setGoals(liveGoals);
+      }
+    }).catch(() => {});
+  }, []);
 
   const categories = ['Tous', ...Object.keys(categoryColors)];
   const filtered = filter === 'Tous' ? goals : goals.filter(g => g.category === filter);
@@ -174,12 +207,15 @@ function GoalTracker() {
       else if (pct >= 60) status = 'Avancé';
       else if (pct > 0) status = 'En cours';
       else status = 'Non démarré';
+      updateObjective(id, current, status).catch(() => {});
       return { ...g, current, status };
     }));
     setEditingId(null);
   };
 
   const handleStatusChange = (id, status) => {
+    const goal = goals.find(g => g.id === id);
+    if (goal) updateObjective(id, goal.current, status).catch(() => {});
     setGoals(goals.map(g => g.id === id ? { ...g, status } : g));
   };
 
@@ -195,7 +231,7 @@ function GoalTracker() {
       category: newGoal.category,
       status: newGoal.status,
     }]);
-    setNewGoal({ title: '', target: '', current: '0', unit: '', category: 'Production', status: 'Non démarré' });
+    setNewGoal({ title: '', target: '', current: '0', unit: '', category: 'Professionnel', status: 'Non démarré' });
     setShowForm(false);
   };
 
@@ -218,13 +254,44 @@ function GoalTracker() {
       {/* Header with summary */}
       <div style={styles.header}>
         <div>
-          <h2 style={styles.title}>Objectifs Mars 2026</h2>
+          <h2 style={styles.title}>Objectifs Avril 2026</h2>
           <p style={styles.subtitle}>{doneCount}/{goals.length} atteints — Progression globale {totalPct}%</p>
         </div>
         <button style={styles.addBtn} onClick={() => setShowForm(!showForm)}>
           {showForm ? '✕ Fermer' : '+ Objectif'}
         </button>
       </div>
+
+      {/* Month switcher */}
+      <div style={styles.monthBar}>
+        {MONTHS.map((m, i) => {
+          const isActive = i === selectedMonth;
+          const isPast = i < CURRENT_MONTH;
+          const isFuture = i > CURRENT_MONTH;
+          return (
+            <button
+              key={m}
+              onClick={() => setSelectedMonth(i)}
+              style={{
+                ...styles.monthPill,
+                ...(isActive ? styles.monthPillActive : {}),
+                ...(isPast ? styles.monthPillPast : {}),
+                ...(isFuture ? styles.monthPillFuture : {}),
+              }}
+            >
+              {m}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Inactive month message */}
+      {selectedMonth !== CURRENT_MONTH && (
+        <div style={styles.monthNotice}>
+          <span style={styles.monthNoticeIcon}>ℹ️</span>
+          <span>Les objectifs pour {MONTHS[selectedMonth]} ne sont pas encore disponibles. Affichage du mois actif (Avril).</span>
+        </div>
+      )}
 
       {/* Global progress bar */}
       <div style={styles.globalBar}>
@@ -433,6 +500,28 @@ const styles = {
     background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8,
     padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
   },
+  monthBar: {
+    display: 'flex', gap: 3, background: '#f1f5f9', borderRadius: 10,
+    padding: 3, marginBottom: 16,
+  },
+  monthPill: {
+    flex: 1, textAlign: 'center', padding: '7px 0', borderRadius: 7,
+    fontSize: 12, fontWeight: 500, color: '#94a3b8', cursor: 'pointer',
+    border: 'none', background: 'transparent', fontFamily: 'inherit',
+    transition: 'all 0.2s',
+  },
+  monthPillActive: {
+    background: '#2563eb', color: '#fff', fontWeight: 700,
+    boxShadow: '0 1px 3px rgba(37,99,235,0.3)',
+  },
+  monthPillPast: { color: '#cbd5e1' },
+  monthPillFuture: { color: '#d1d5db' },
+  monthNotice: {
+    display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px',
+    background: '#eff6ff', borderRadius: 8, marginBottom: 12,
+    fontSize: 12, color: '#2563eb', border: '1px solid #bfdbfe',
+  },
+  monthNoticeIcon: { fontSize: 14 },
   globalBar: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 },
   globalBarTrack: { flex: 1, height: 10, borderRadius: 5, background: '#e2e8f0' },
   globalBarFill: { height: '100%', borderRadius: 5, transition: 'width 0.4s ease' },
